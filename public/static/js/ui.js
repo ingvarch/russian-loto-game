@@ -41,6 +41,22 @@ function persist() {
 
 // ---- Public entry point --------------------------------------------------
 
+// Replace the entire UI state with one received from the server (e.g.
+// the host opened admin in a second tab/device, or the other admin
+// pushed a change). The remote payload is treated as authoritative:
+// we save it to localStorage so a refresh persists, but we do NOT
+// fire onSaveHook -- otherwise we'd echo it straight back to the
+// server and create a feedback loop. recompute() runs defensively in
+// case the payload was pushed by an older client whose cardLevel was
+// stale; on a healthy state it's a no-op.
+export function applyRemoteState(remoteState) {
+  if (!remoteState || typeof remoteState !== "object") return;
+  current = remoteState;
+  state.saveState(current);
+  state.recompute(current, active(), state.nowHHMM());
+  render();
+}
+
 export function init({ cards, initialState, onSave, autoOpenNewGame }) {
   CARDS = cards;
   current = initialState;
