@@ -9,19 +9,21 @@
     "deploy": "wrangler deploy",
     "deploy:staging": "wrangler deploy --env staging",
     "typecheck": "tsc --noEmit",
-    "test": "node --test tests/js/",
+    "typecheck:tests": "tsc --noEmit -p tsconfig.test.json",
+    "test": "bun test tests/js/",
     "test:worker": "vitest run",
-    "test:all": "npm run test && npm run test:worker",
+    "test:all": "bun run test && bun run test:worker",
     "cf-typegen": "wrangler types"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.8.0",
     "@cloudflare/workers-types": "^4.20260401.0",
+    "@types/bun": "^1.1.0",
     "typescript": "^5.6.0",
     "vitest": "^2.1.0",
     "wrangler": "^4.0.0"
   },
   "engines": {
-    "node": ">=20"
+    "bun": ">=1.1.0"
   }
 }

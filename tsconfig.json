@@ -24,6 +24,6 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["src/**/*.ts", "tests/**/*.ts"],
-  "exclude": ["node_modules", "public", ".wrangler"]
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "public", ".wrangler", "tests"]
 }

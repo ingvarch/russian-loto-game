@@ -12,8 +12,8 @@ from scratch.
 ## Quick start
 
 ```bash
-npm install
-npm run dev                   # local Workers dev on :8787
+bun install
+bun run dev                   # local Workers dev on :8787
 ```
 
 Open `http://localhost:8787/` for the admin page. Create a session,
@@ -21,12 +21,16 @@ then open the display URL on a second device.
 
 ## Scripts
 
-- `npm run dev` — Wrangler local dev (Worker + DO + static assets).
-- `npm run test` — pure logic unit tests via Node's built-in runner.
-- `npm run test:worker` — Worker + DO tests via Vitest.
-- `npm run typecheck` — TypeScript check without emit.
-- `npm run deploy` — deploy to production.
-- `npm run deploy:staging` — deploy to the `staging` environment.
+- `bun run dev` — Wrangler local dev (Worker + DO + static assets).
+- `bun test tests/js/` — pure logic unit tests under Bun.
+- `bun run test:worker` — Worker + DO tests via Vitest + workerd pool.
+- `bun run typecheck` — TypeScript check without emit (src + tests).
+- `bun run deploy` — deploy to production.
+- `bun run deploy:staging` — deploy to the `staging` environment.
+
+Bun is the local toolchain (install, scripts, tests). The Worker
+itself runs on `workerd` in production — Bun never touches the
+runtime.
 
 ## Config
 
