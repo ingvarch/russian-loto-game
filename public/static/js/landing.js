@@ -26,7 +26,10 @@ async function createSession(body) {
   }
   const { sessionId } = await res.json();
   if (!sessionId) throw new Error("server returned no sessionId");
-  location.assign(`/s/${sessionId}/`);
+  // `?new=1` tells the admin shell to open the new-game modal on first
+  // load so the host can pick bank, percentages, and the active card
+  // range before the first number is called.
+  location.assign(`/s/${sessionId}/?new=1`);
 }
 
 document.getElementById("new-default-btn").addEventListener("click", async () => {

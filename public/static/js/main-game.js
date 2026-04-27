@@ -32,4 +32,13 @@ function pushToServer(s) {
   }).catch(() => {});
 }
 
-ui.init({ cards: CARDS, initialState, onSave: pushToServer });
+// `?new=1` is set by the landing page when the host just created a fresh
+// session. Strip the query before booting the UI so a refresh doesn't
+// re-open the modal indefinitely.
+const autoOpenNewGame =
+  new URLSearchParams(location.search).get("new") === "1";
+if (autoOpenNewGame) {
+  history.replaceState(null, "", location.pathname + location.hash);
+}
+
+ui.init({ cards: CARDS, initialState, onSave: pushToServer, autoOpenNewGame });

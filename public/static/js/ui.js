@@ -41,7 +41,7 @@ function persist() {
 
 // ---- Public entry point --------------------------------------------------
 
-export function init({ cards, initialState, onSave }) {
+export function init({ cards, initialState, onSave, autoOpenNewGame }) {
   CARDS = cards;
   current = initialState;
   onSaveHook = onSave || null;
@@ -61,6 +61,11 @@ export function init({ cards, initialState, onSave }) {
   state.recompute(current, active(), state.nowHHMM());
   persist();
   render();
+
+  // First visit from the landing page: open the new-game modal so the
+  // host can pick bank/percentages/range before the first call. The
+  // existing modal handler does the rest -- no extra wiring here.
+  if (autoOpenNewGame) openNewGameModal();
 }
 
 // ---- Grid ----------------------------------------------------------------
