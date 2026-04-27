@@ -16,10 +16,32 @@
     <span class="card-count" id="card-count"></span>
   </div>
   <div class="header-actions">
-    <a href="display" target="_blank" rel="noopener" class="display-link" id="display-link" title="Открыть на втором экране">Табло</a>
+    <button type="button" class="display-link" id="share-display-btn" title="Поделиться ссылкой на табло">Табло</button>
     <button class="new-game-btn" id="new-game-btn">Новая игра</button>
   </div>
 </header>
+
+<div class="modal-backdrop" id="share-display-modal">
+  <div class="modal modal-wide">
+    <p class="modal-title">Открыть табло</p>
+    <p class="modal-text">
+      Отсканируй QR-код камерой телефона или открой ссылку напрямую.
+      Можно открыть на любом устройстве — таблица read-only, никаких
+      паролей.
+    </p>
+    <div class="qr-wrap">
+      <img id="qr-img" alt="QR-код ссылки на табло">
+    </div>
+    <div class="qr-url-row">
+      <code class="qr-url" id="qr-url"></code>
+      <button type="button" class="btn-confirm" id="qr-copy-btn">Копировать</button>
+    </div>
+    <div class="modal-actions">
+      <a href="display" target="_blank" rel="noopener" class="display-open-link" id="display-open-link">Открыть на этом устройстве</a>
+      <button type="button" class="btn-cancel" data-action="cancel">Закрыть</button>
+    </div>
+  </div>
+</div>
 
 <div class="grid-wrap">
   <div class="grid" id="number-grid"></div>

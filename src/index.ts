@@ -54,6 +54,20 @@ async function handleSessionCreate(request: Request, env: Env): Promise<Response
     });
   }
 
+  // Rate-limit per client IP to keep a curl-loop attacker from churning
+  // through DO instances. The binding is optional so tests (and any
+  // local dev without the namespace configured) keep working.
+  if (env.SESSION_RATE_LIMITER !== undefined) {
+    const key = request.headers.get("CF-Connecting-IP") ?? "unknown";
+    const { success } = await env.SESSION_RATE_LIMITER.limit({ key });
+    if (!success) {
+      return new Response("rate limited", {
+        status: 429,
+        headers: { "Retry-After": "60" },
+      });
+    }
+  }
+
   const cardsResult = await readCardsFromBody(request);
   if (!cardsResult.ok) {
     return new Response(cardsResult.error, { status: cardsResult.status });
@@ -112,6 +126,9 @@ async function handleSessionScoped(
   }
   if (rest === "api/events") {
     return stub.fetch(request);
+  }
+  if (rest === "qr.svg") {
+    return handleQR(request, sessionId);
   }
 
   return new Response("not found", { status: 404 });
@@ -176,6 +193,32 @@ async function handlePage(
     .on("script#cards-data", new InjectJSON(cards))
     .on("script#server-range", new InjectJSON(null))
     .transform(assetRes);
+}
+
+// Server-side QR code for the session's display URL. Generated on every
+// hit (cheap, ~1ms), cached for an hour by the edge so a polling page
+// or an embedded <img> doesn't re-render needlessly.
+async function handleQR(request: Request, sessionId: string): Promise<Response> {
+  const { default: QRCode } = await import("qrcode-svg");
+  const url = new URL(request.url);
+  const displayUrl = `${url.origin}/s/${sessionId}/display`;
+  const svg = new QRCode({
+    content: displayUrl,
+    padding: 1,
+    width: 256,
+    height: 256,
+    color: "#000000",
+    background: "#ffffff",
+    ecl: "M",
+    join: true,
+  }).svg();
+  return new Response(svg, {
+    status: 200,
+    headers: {
+      "Content-Type": "image/svg+xml; charset=utf-8",
+      "Cache-Control": "public, max-age=3600",
+    },
+  });
 }
 
 function jsonResponse(body: unknown, status: number): Response {

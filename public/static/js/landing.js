@@ -9,6 +9,7 @@
 // On success the page navigates to /s/<id>/?new=1 so the admin shell
 // opens its new-game modal for bank/percentages/range pickup.
 
+import { normalizeDeck } from "./normalize-deck.js";
 import { validateCards } from "./validate-cards.js";
 
 const errEl = document.getElementById("error");
@@ -45,33 +46,6 @@ document.getElementById("new-default-btn").addEventListener("click", async () =>
     showError(e.message || "не удалось создать сессию");
   }
 });
-
-// Accept all three shapes the host might paste in:
-//   1. raw array            [{seq, cid, numbers, rows}, ...]
-//   2. wrapped              { cards: [{...}, ...] }
-//   3. CLI registry         { "<cid>": {seq, numbers, rows, ...}, ... }
-//      (the file at ~/.russian-loto/printed.json) -- cid is the key,
-//      so we lift it onto each entry.
-function normalizeDeck(parsed) {
-  if (Array.isArray(parsed)) return parsed;
-  if (!parsed || typeof parsed !== "object") return null;
-  if (Array.isArray(parsed.cards)) return parsed.cards;
-
-  const entries = Object.entries(parsed);
-  const looksLikeRegistry = entries.length > 0 && entries.every(
-    ([, v]) => v && typeof v === "object" && typeof v.seq === "number"
-                && Array.isArray(v.numbers) && Array.isArray(v.rows),
-  );
-  if (looksLikeRegistry) {
-    return entries.map(([cid, v]) => ({
-      seq: v.seq,
-      cid,
-      numbers: v.numbers,
-      rows: v.rows,
-    }));
-  }
-  return null;
-}
 
 document.getElementById("custom-cards-input").addEventListener("change", async (ev) => {
   errEl.classList.add("hidden");

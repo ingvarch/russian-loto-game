@@ -19,11 +19,15 @@
     "@cloudflare/vitest-pool-workers": "^0.8.0",
     "@cloudflare/workers-types": "^4.20260401.0",
     "@types/bun": "^1.1.0",
+    "@types/qrcode-svg": "^1.1.5",
     "typescript": "^5.6.0",
     "vitest": "^2.1.0",
     "wrangler": "^4.0.0"
   },
   "engines": {
     "bun": ">=1.1.0"
+  },
+  "dependencies": {
+    "qrcode-svg": "^1.1.0"
   }
 }

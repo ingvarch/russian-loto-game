@@ -29,6 +29,15 @@ interface Subscriber {
 }
 
 const ENCODER = new TextEncoder();
+const HEARTBEAT_FRAME = ENCODER.encode(": keep-alive\n\n");
+
+// Heartbeat interval. 25s is below the typical 60s idle threshold of
+// Cloudflare's edge and most corporate proxies, so an idle SSE
+// connection (host stepped away, no state changes) keeps flowing
+// instead of being silently dropped. Browsers will reconnect via
+// EventSource onerror, but the gap shows up as missed updates if it
+// lasts long enough -- the heartbeat avoids that entirely.
+const HEARTBEAT_MS = 25_000;
 
 function sseFrame(payload: unknown): Uint8Array {
   return ENCODER.encode(`data: ${JSON.stringify(payload)}\n\n`);
@@ -39,6 +48,7 @@ export class GameRoom extends DurableObject<Env> {
   #state: unknown = null;
   #cards: unknown[] = [];
   #subscribers = new Set<Subscriber>();
+  #heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -114,12 +124,14 @@ export class GameRoom extends DurableObject<Env> {
         // Send the current state so a late-joining display rehydrates
         // without an extra GET round-trip.
         controller.enqueue(sseFrame({ state: this.#state }));
+        this.#startHeartbeat();
       },
       cancel: () => {
         if (sub) {
           sub.alive = false;
           this.#subscribers.delete(sub);
         }
+        if (this.#subscribers.size === 0) this.#stopHeartbeat();
       },
     });
 
@@ -135,6 +147,13 @@ export class GameRoom extends DurableObject<Env> {
 
   #broadcast(): void {
     const frame = sseFrame({ state: this.#state });
+    this.#fanOut(frame);
+  }
+
+  // Push a pre-encoded frame to every live subscriber, pruning any whose
+  // controller throws (consumer disconnected between ticks). Used by both
+  // state broadcasts and heartbeat pings.
+  #fanOut(frame: Uint8Array): void {
     const dead: Subscriber[] = [];
     for (const sub of this.#subscribers) {
       if (!sub.alive) {
@@ -144,12 +163,27 @@ export class GameRoom extends DurableObject<Env> {
       try {
         sub.controller.enqueue(frame);
       } catch {
-        // Controller may be closed if the consumer disconnected between
-        // ticks. Mark the subscriber for removal.
         sub.alive = false;
         dead.push(sub);
       }
     }
     for (const sub of dead) this.#subscribers.delete(sub);
+  }
+
+  #startHeartbeat(): void {
+    if (this.#heartbeatTimer !== null) return;
+    this.#heartbeatTimer = setInterval(() => {
+      this.#fanOut(HEARTBEAT_FRAME);
+      // Stop the timer once the room has emptied; the next subscribe()
+      // will restart it. Avoids holding the DO open just to send pings
+      // into the void.
+      if (this.#subscribers.size === 0) this.#stopHeartbeat();
+    }, HEARTBEAT_MS);
+  }
+
+  #stopHeartbeat(): void {
+    if (this.#heartbeatTimer === null) return;
+    clearInterval(this.#heartbeatTimer);
+    this.#heartbeatTimer = null;
   }
 }
