@@ -16,14 +16,14 @@ main = "src/index.ts"
 # need a newer runtime feature.
 compatibility_date = "2025-09-06"
 
-# Enables *.workers.dev subdomain for quick sharing. Flip to false once a
-# real Custom Domain is attached via [[routes]] below.
+# Enables *.workers.dev subdomain alongside the custom domain so the raw
+# preview URL stays usable for testing. Flip to false to lock everything
+# behind the custom domain.
 workers_dev = true
 
-# Uncomment and fill in when a real domain is wired up.
-# [[routes]]
-# pattern = "loto.example.com"
-# custom_domain = true
+[[routes]]
+pattern = "loto.1ly.dev"
+custom_domain = true
 
 # ---- Static assets -------------------------------------------------------
 #
