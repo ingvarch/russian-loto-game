@@ -26,11 +26,23 @@ header {
   display: flex; align-items: center; gap: 8px;
 }
 .display-link {
-  display: inline-flex; align-items: center;
-  padding: 8px 12px;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px;
+  background: transparent;
   border: 1px solid var(--border); border-radius: 8px;
   color: var(--text); text-decoration: none;
   font-size: 14px; font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.display-link::before {
+  content: "";
+  width: 14px; height: 10px;
+  border: 1.5px solid currentColor;
+  border-radius: 2px;
+  display: inline-block;
 }
 .display-link:active { background: var(--border); }
 
