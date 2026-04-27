@@ -40,6 +40,11 @@ export default {
   },
 } satisfies ExportedHandler<Env>;
 
+// Hard cap on session-creation body size. A real custom deck (~60 cards
+// of full game data) is well under 100 KB; a megabyte is generous and
+// anything beyond is either a bug or an attack on memory/CPU.
+const MAX_SESSION_BODY = 1024 * 1024;
+
 async function handleSessionCreate(request: Request, env: Env): Promise<Response> {
   if (request.method !== "POST") {
     return new Response("method not allowed", {
@@ -48,11 +53,17 @@ async function handleSessionCreate(request: Request, env: Env): Promise<Response
     });
   }
 
+  const cardsResult = await readCardsFromBody(request);
+  if (!cardsResult.ok) {
+    return new Response(cardsResult.error, { status: cardsResult.status });
+  }
+  const cards = cardsResult.cards ?? DEFAULT_CARDS;
+
   const sessionId = newSessionId();
   const ownerToken = newOwnerToken();
 
   const stub = env.GAME_ROOM.get(env.GAME_ROOM.idFromName(sessionId));
-  await stub.init(ownerToken, DEFAULT_CARDS);
+  await stub.init(ownerToken, cards);
 
   // Owner cookie is scoped to the session path so two sessions in the same
   // browser don't collide. HttpOnly keeps the token out of JS; the admin
@@ -90,7 +101,7 @@ async function handleSessionScoped(
   }
 
   if (rest === "" || rest === "index.html") {
-    return handlePage(request, env, stub, "/");
+    return handlePage(request, env, stub, "/admin");
   }
   if (rest === "display" || rest === "display.html") {
     return handlePage(request, env, stub, "/display");
@@ -171,4 +182,59 @@ function jsonResponse(body: unknown, status: number): Response {
     status,
     headers: { "Content-Type": "application/json" },
   });
+}
+
+// Parse the optional `{ cards: [...] }` body of POST /api/session.
+//
+// Returns:
+//   { ok: true, cards: null }     -- no body, fall back to defaults
+//   { ok: true, cards: [...] }    -- a custom deck the host uploaded
+//   { ok: false, ... }            -- 400 or 413 with a reason string
+type CardsBodyResult =
+  | { ok: true; cards: unknown[] | null }
+  | { ok: false; status: number; error: string };
+
+async function readCardsFromBody(request: Request): Promise<CardsBodyResult> {
+  const contentLength = request.headers.get("Content-Length");
+  if (contentLength !== null) {
+    const len = Number(contentLength);
+    if (Number.isFinite(len) && len > MAX_SESSION_BODY) {
+      return { ok: false, status: 413, error: "request body too large" };
+    }
+  }
+
+  // Read raw text first so we can enforce the size limit even when the
+  // client lied about Content-Length. .text() loads the whole body into
+  // memory, which is exactly what we want here -- the entire deck is
+  // tiny and we need to JSON.parse it whole.
+  let raw: string;
+  try {
+    raw = await request.text();
+  } catch {
+    return { ok: false, status: 400, error: "could not read body" };
+  }
+  if (raw.length === 0) {
+    return { ok: true, cards: null };
+  }
+  if (raw.length > MAX_SESSION_BODY) {
+    return { ok: false, status: 413, error: "request body too large" };
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return { ok: false, status: 400, error: "invalid JSON body" };
+  }
+  if (parsed === null || typeof parsed !== "object") {
+    return { ok: false, status: 400, error: "body must be a JSON object" };
+  }
+  const obj = parsed as Record<string, unknown>;
+  if (obj["cards"] === undefined) {
+    return { ok: true, cards: null };
+  }
+  if (!Array.isArray(obj["cards"])) {
+    return { ok: false, status: 400, error: "`cards` must be an array" };
+  }
+  return { ok: true, cards: obj["cards"] };
 }

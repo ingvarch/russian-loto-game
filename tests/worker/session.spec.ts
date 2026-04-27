@@ -46,3 +46,72 @@ describe("POST /api/session", () => {
     expect(res.status).toBe(405);
   });
 });
+
+describe("POST /api/session with custom cards", () => {
+  // Minimal stand-ins: the Worker doesn't validate card shape beyond
+  // "array of objects" -- the client logic lives in logic.js and is
+  // tested separately. The server's job is to faithfully pass cards
+  // through to the GameRoom DO and back to the page-render route.
+  const fakeCards = [
+    { seq: 1, cid: "aaa", numbers: [1, 2, 3], rows: [[]] },
+    { seq: 2, cid: "bbb", numbers: [4, 5, 6], rows: [[]] },
+  ];
+
+  it("uses uploaded cards when body has a `cards` array", async () => {
+    const create = await SELF.fetch("https://example.com/api/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cards: fakeCards }),
+    });
+    expect(create.status).toBe(201);
+    const { sessionId } = (await create.json()) as { sessionId: string };
+
+    const page = await SELF.fetch(`https://example.com/s/${sessionId}/`);
+    const html = await page.text();
+    const re = /<script[^>]*id="cards-data"[^>]*>([\s\S]*?)<\/script>/;
+    const m = html.match(re);
+    expect(m).not.toBeNull();
+    const injected = JSON.parse(m![1]!);
+    expect(injected).toEqual(fakeCards);
+  });
+
+  it("falls back to default cards when body is empty", async () => {
+    const res = await SELF.fetch("https://example.com/api/session", {
+      method: "POST",
+    });
+    expect(res.status).toBe(201);
+    // Default deck is currently empty; the test in page.spec.ts already
+    // asserts the array shape. Here we just confirm the no-body path
+    // doesn't 400.
+  });
+
+  it("rejects body with non-array `cards` with 400", async () => {
+    const res = await SELF.fetch("https://example.com/api/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cards: "not an array" }),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it("rejects body with malformed JSON with 400", async () => {
+    const res = await SELF.fetch("https://example.com/api/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{not json",
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it("rejects body larger than 1 MB with 413", async () => {
+    // A custom deck of 60-card scale tops out around 30-40 KB in JSON.
+    // Anything beyond a megabyte is either a bug or an attack.
+    const oversized = "x".repeat(1024 * 1024 + 1);
+    const res = await SELF.fetch("https://example.com/api/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Content-Length": String(oversized.length) },
+      body: oversized,
+    });
+    expect(res.status).toBe(413);
+  });
+});
