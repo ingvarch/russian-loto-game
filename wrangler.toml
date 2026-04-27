@@ -1,0 +1,80 @@
+# Cloudflare Workers configuration for russian-loto-game.
+#
+# Reference:
+#   https://developers.cloudflare.com/workers/wrangler/configuration/
+#
+# Treat this file as the source of truth. Do not edit deployment settings
+# in the Cloudflare dashboard; Wrangler will overwrite them on the next
+# deploy.
+
+name = "russian-loto-game"
+main = "src/index.ts"
+compatibility_date = "2026-04-01"
+
+# Enables *.workers.dev subdomain for quick sharing. Flip to false once a
+# real Custom Domain is attached via [[routes]] below.
+workers_dev = true
+
+# Uncomment and fill in when a real domain is wired up.
+# [[routes]]
+# pattern = "loto.example.com"
+# custom_domain = true
+
+# ---- Static assets -------------------------------------------------------
+#
+# public/ holds index.html, display.html, and everything under static/.
+# The Worker script only intercepts /api/* and /s/<id>/api/* — everything
+# else is served as a plain asset without billing a Worker invocation.
+# html_handling = "auto-trailing-slash" resolves /display to display.html.
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+html_handling = "auto-trailing-slash"
+not_found_handling = "404-page"
+run_worker_first = ["/api/*", "/s/*"]
+
+# ---- Observability -------------------------------------------------------
+#
+# Enables Workers Logs so production errors and recent requests are visible
+# in the dashboard. head_sampling_rate defaults to 1.0 (log everything);
+# adjust once traffic justifies sampling.
+
+[observability]
+enabled = true
+
+# ---- Durable Objects -----------------------------------------------------
+#
+# One GameRoom instance per game session. Holds the authoritative game
+# state and the pool of SSE subscribers.
+
+[[durable_objects.bindings]]
+name = "GAME_ROOM"
+class_name = "GameRoom"
+
+# Migrations describe schema changes to Durable Object classes and run in
+# order on deploy. Never edit an applied migration; add a new tag instead.
+# new_sqlite_classes opts into the SQLite-backed storage class (the modern
+# default for new DOs). See:
+#   https://developers.cloudflare.com/durable-objects/reference/durable-objects-migrations/
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["GameRoom"]
+
+# ---- Environments --------------------------------------------------------
+#
+# Override keys per environment (staging, production). Top-level values
+# above are inherited unless re-declared.
+
+[env.staging]
+name = "russian-loto-game-staging"
+workers_dev = true
+
+[[env.staging.durable_objects.bindings]]
+name = "GAME_ROOM"
+class_name = "GameRoom"
+
+[[env.staging.migrations]]
+tag = "v1"
+new_sqlite_classes = ["GameRoom"]
