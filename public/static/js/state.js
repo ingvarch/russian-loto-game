@@ -37,6 +37,23 @@ import * as logic from "./logic.js";
 
 export const STORAGE_KEY = "loto-game-state";
 
+// Session-scoped localStorage. The admin page sets the active session at
+// boot via setSession(...); load/save then write under
+// `loto-game-state:<sessionId>` so two sessions in the same browser
+// don't trample each other. Tests run with no active session and use
+// the bare STORAGE_KEY as before.
+let activeSessionId = null;
+
+export function setSession(sessionId) {
+  activeSessionId = sessionId || null;
+}
+
+function currentStorageKey() {
+  return activeSessionId === null
+    ? STORAGE_KEY
+    : `${STORAGE_KEY}:${activeSessionId}`;
+}
+
 export function freshState(overrides) {
   const base = {
     called: [],
@@ -54,7 +71,7 @@ export function freshState(overrides) {
 
 export function loadState() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(currentStorageKey());
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!parsed || !Array.isArray(parsed.called)) return null;
@@ -97,7 +114,7 @@ export function loadState() {
 
 export function saveState(state) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem(currentStorageKey(), JSON.stringify(state));
   } catch (e) {
     // localStorage may be unavailable in private mode; degrade silently
   }
