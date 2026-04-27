@@ -48,20 +48,29 @@ describe("POST /api/session", () => {
 });
 
 describe("POST /api/session with custom cards", () => {
-  // Minimal stand-ins: the Worker doesn't validate card shape beyond
-  // "array of objects" -- the client logic lives in logic.js and is
-  // tested separately. The server's job is to faithfully pass cards
-  // through to the GameRoom DO and back to the page-render route.
-  const fakeCards = [
-    { seq: 1, cid: "aaa", numbers: [1, 2, 3], rows: [[]] },
-    { seq: 2, cid: "bbb", numbers: [4, 5, 6], rows: [[]] },
-  ];
+  // A real loto card: 5 numbers per row across 3 rows, each in its
+  // column range, `numbers` matches the multiset from `rows`.
+  function realCard(seq: number, cid: string) {
+    const rows = [
+      [1, 11, 24, 30, null, null, null, null, 80],
+      [2, null, 25, null, 40, 50, null, 70, null],
+      [null, 12, null, 31, null, 51, null, 71, 81],
+    ];
+    const flat = rows.flat().filter((v): v is number => v !== null);
+    return {
+      seq,
+      cid,
+      numbers: flat.slice().sort((a, b) => a - b),
+      rows,
+    };
+  }
+  const validDeck = [realCard(1, "aaa00001"), realCard(2, "bbb00002")];
 
   it("uses uploaded cards when body has a `cards` array", async () => {
     const create = await SELF.fetch("https://example.com/api/session", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cards: fakeCards }),
+      body: JSON.stringify({ cards: validDeck }),
     });
     expect(create.status).toBe(201);
     const { sessionId } = (await create.json()) as { sessionId: string };
@@ -72,7 +81,7 @@ describe("POST /api/session with custom cards", () => {
     const m = html.match(re);
     expect(m).not.toBeNull();
     const injected = JSON.parse(m![1]!);
-    expect(injected).toEqual(fakeCards);
+    expect(injected).toEqual(validDeck);
   });
 
   it("falls back to default cards when body is empty", async () => {
@@ -99,6 +108,26 @@ describe("POST /api/session with custom cards", () => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: "{not json",
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it("rejects a deck whose cards fail loto invariants with 400", async () => {
+    // numbers length is 14 instead of 15 -- caught by validateCards.
+    const broken = [{
+      seq: 1,
+      cid: "deadbeef",
+      numbers: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+      rows: [
+        [1, 11, null, null, null, null, null, null, 80],
+        [2, null, 25, null, 40, 50, null, 70, null],
+        [null, 12, null, 31, null, 51, null, 71, 81],
+      ],
+    }];
+    const res = await SELF.fetch("https://example.com/api/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cards: broken }),
     });
     expect(res.status).toBe(400);
   });

@@ -20,15 +20,53 @@
       <span class="hint">с дефолтной колодой</span>
     </button>
 
-    <label for="custom-cards-input" class="action-btn secondary">
-      Загрузить свою колоду
-      <span class="hint">JSON из russian-loto CLI</span>
-    </label>
+    <div class="upload-row">
+      <label for="custom-cards-input" class="action-btn secondary">
+        Загрузить свою колоду
+        <span class="hint">JSON из russian-loto CLI</span>
+      </label>
+      <button id="format-help-btn" class="format-help-btn" type="button"
+              title="Формат JSON" aria-label="Формат JSON">?</button>
+    </div>
     <input id="custom-cards-input" type="file" accept="application/json" hidden>
   </section>
 
   <p class="error hidden" id="error"></p>
 </main>
+
+<div class="modal-backdrop" id="format-help-modal">
+  <div class="modal modal-wide">
+    <p class="modal-title">Формат JSON</p>
+    <p class="modal-text">
+      Колода — массив карт. Каждая карта имеет четыре поля:
+      <code>seq</code> (порядковый номер),
+      <code>cid</code> (идентификатор),
+      <code>numbers</code> (15 чисел из 1..90),
+      <code>rows</code> (3×9, ровно 5 чисел в строке, остальное — null).
+      Каждое число должно лежать в своей колонке: 1..9, 10..19, ..., 80..90.
+    </p>
+    <p class="modal-text">
+      Принимаются три формы: <code>[ ... ]</code>, <code>{ "cards": [ ... ] }</code>
+      и сырой <code>~/.russian-loto/printed.json</code> из CLI
+      (там cid лежит ключом — лендинг разворачивает его в поле автоматически).
+    </p>
+<pre class="format-example"><code>[
+  {
+    "seq": 1,
+    "cid": "abcdef01",
+    "numbers": [1, 2, 11, 12, 24, 25, 30, 31, 40, 50, 51, 70, 71, 80, 81],
+    "rows": [
+      [1,    11,   24,   30,   null, null, null, null, 80],
+      [2,    null, 25,   null, 40,   50,   null, 70,   null],
+      [null, 12,   null, 31,   null, 51,   null, 71,   81]
+    ]
+  }
+]</code></pre>
+    <div class="modal-actions">
+      <button class="btn-confirm" id="format-help-close">Закрыть</button>
+    </div>
+  </div>
+</div>
 
 <script type="module" src="/static/js/landing.js"></script>
 

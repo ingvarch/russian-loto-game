@@ -16,6 +16,7 @@ import { readOwnerToken } from "./auth.js";
 import { DEFAULT_CARDS } from "./default-cards.js";
 import { newOwnerToken, newSessionId } from "./session-id.js";
 import type { Env } from "./types.js";
+import { validateCards } from "./validate-cards.js";
 
 export { GameRoom } from "./game-room.js";
 
@@ -233,8 +234,13 @@ async function readCardsFromBody(request: Request): Promise<CardsBodyResult> {
   if (obj["cards"] === undefined) {
     return { ok: true, cards: null };
   }
-  if (!Array.isArray(obj["cards"])) {
-    return { ok: false, status: 400, error: "`cards` must be an array" };
+  // Run the same invariant checks the landing page applies client-side.
+  // Defence in depth: a hand-crafted curl with `cards: [...]` shouldn't
+  // be able to seed garbage into a session that the admin shell will
+  // then crash on.
+  const validated = validateCards(obj["cards"]);
+  if (!validated.ok) {
+    return { ok: false, status: 400, error: validated.error };
   }
-  return { ok: true, cards: obj["cards"] };
+  return { ok: true, cards: validated.cards };
 }
