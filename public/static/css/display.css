@@ -66,59 +66,80 @@ header {
 
 main {
   display: flex;
+  justify-content: center;
   gap: 24px;
   padding: 16px 24px;
   height: calc(100vh - 60px);
+  max-width: 1280px;
+  margin: 0 auto;
   align-items: flex-start;
 }
 
 /* ---- Grid --------------------------------------------------------------- */
 
 .grid-wrap {
-  flex: 1;
+  flex: 0 1 900px;
   min-width: 0;
 }
 
 .grid {
   display: grid;
   grid-template-columns: repeat(9, 1fr);
-  gap: 4px;
-  max-width: 900px;
+  gap: 8px;
 }
 
+/* Бочонок русского лото, плоский вариант (см. эталонное фото деревянных бочонков).
+ *   - не выпавший — сплошной серый круг
+ *   - выпавший    — светло-деревянный круг + красное кольцо и красная цифра
+ * isolation: isolate ограничивает z-index ::before внутри ячейки.
+ *
+ * Свежевыпавший выделен утолщённым ярким кольцом — крупный шар показан в сайдбаре. */
 .cell {
+  position: relative;
+  isolation: isolate;
+  container-type: inline-size;
   aspect-ratio: 1 / 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: clamp(1.2rem, 3vw, 2.4rem);
-  font-weight: 600;
+  font-size: clamp(1.2rem, 3vw, 2.2rem);
+  font-weight: 800;
   font-variant-numeric: tabular-nums;
-  border-radius: 8px;
-  background: var(--surface);
-  color: var(--text-dim);
-  transition: background 0.15s, color 0.15s, transform 0.15s;
+  border-radius: 50%;
+  background: #6c6c70;
+  color: #d1d1d6;
+  transition: background 0.15s, color 0.15s;
   user-select: none;
 }
 
 .cell.called {
-  background: var(--accent);
-  color: var(--accent-text);
-  transform: scale(1.04);
+  background: #e8cba0;
+  color: #c92a1d;
+}
+
+/* Красное кольцо вокруг цифры (прозрачный центр, фон-дерево видно сквозь). */
+.cell.called::before {
+  content: "";
+  position: absolute;
+  inset: 3%;
+  border-radius: 50%;
+  border: 4cqi solid #c92a1d;
+  box-sizing: border-box;
+  background: transparent;
 }
 
 .cell.placeholder {
   visibility: hidden;
 }
 
-.cell.last-called {
-  box-shadow: 0 0 0 3px var(--accent), 0 0 16px rgba(255, 107, 53, 0.5);
+.cell.last-called::before {
+  border-color: #e84133;
 }
 
 /* ---- Sidebar ------------------------------------------------------------ */
 
 .sidebar {
-  width: 260px;
+  width: 280px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -132,6 +153,103 @@ main {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 12px;
+}
+
+/* ---- Current ball (big) ------------------------------------------------- */
+
+.current-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.current-section .section-title {
+  align-self: flex-start;
+}
+
+.current-ball {
+  position: relative;
+  isolation: isolate;
+  container-type: inline-size;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  background: #e8cba0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.current-ball::before {
+  content: "";
+  position: absolute;
+  inset: 3%;
+  border-radius: 50%;
+  border: 4cqi solid #c92a1d;
+  box-sizing: border-box;
+  background: transparent;
+}
+
+.current-ball.empty {
+  background: #3a3a3c;
+}
+
+.current-ball.empty::before {
+  border-color: transparent;
+}
+
+.current-num {
+  font-size: 5.5rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #c92a1d;
+  line-height: 1;
+}
+
+.current-ball.empty .current-num {
+  color: var(--text-dim);
+  font-size: 3rem;
+}
+
+/* ---- Recent (last 5) --------------------------------------------------- */
+
+.recent-list {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+
+.recent-ball {
+  position: relative;
+  isolation: isolate;
+  container-type: inline-size;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  background: #e8cba0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #c92a1d;
+}
+
+.recent-ball::before {
+  content: "";
+  position: absolute;
+  inset: 3%;
+  border-radius: 50%;
+  border: 4cqi solid #c92a1d;
+  box-sizing: border-box;
+  background: transparent;
+}
+
+/* ---- Hide auxiliary panels until needed -------------------------------- */
+
+body.hide-extras .close-section,
+body.hide-extras .winners-section {
+  display: none;
 }
 
 /* ---- Prize pool --------------------------------------------------------- */

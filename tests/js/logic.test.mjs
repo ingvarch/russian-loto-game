@@ -20,6 +20,7 @@ import {
   levelOf,
   nextPendingBatch,
   nextTiebreakBatch,
+  recentCalled,
   resolveLevel,
   rowHits,
   winnersByLevel,
@@ -622,4 +623,39 @@ test("computePayouts: split=false with resolved tie -> single winner gets full b
   assert.equal(out.level1.winners.length, 1);
   assert.equal(out.level1.winners[0].cid, "b");
   assert.equal(out.level1.perPerson, 10);
+});
+
+
+// ---- recentCalled ---------------------------------------------------------
+
+test("recentCalled returns empty array for empty input", () => {
+  assert.deepEqual(recentCalled([], 5), []);
+});
+
+test("recentCalled returns empty array when called is null or undefined", () => {
+  assert.deepEqual(recentCalled(null, 5), []);
+  assert.deepEqual(recentCalled(undefined, 5), []);
+});
+
+test("recentCalled returns empty array when n <= 0", () => {
+  assert.deepEqual(recentCalled([1, 2, 3], 0), []);
+  assert.deepEqual(recentCalled([1, 2, 3], -1), []);
+});
+
+test("recentCalled returns all in newest-first order when fewer than n", () => {
+  assert.deepEqual(recentCalled([1, 2, 3], 5), [3, 2, 1]);
+});
+
+test("recentCalled returns last n in newest-first order", () => {
+  assert.deepEqual(
+    recentCalled([10, 20, 30, 40, 50, 60, 70], 5),
+    [70, 60, 50, 40, 30],
+  );
+});
+
+test("recentCalled does not mutate the input array", () => {
+  const src = [1, 2, 3, 4];
+  const copy = src.slice();
+  recentCalled(src, 2);
+  assert.deepEqual(src, copy);
 });

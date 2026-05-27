@@ -15,6 +15,15 @@ export function calledSet(calledArray) {
   return new Set(calledArray);
 }
 
+// Last `n` called numbers in newest-first order. Used by the /display page
+// to show the freshly drawn keg plus a tail of recent draws.
+export function recentCalled(called, n) {
+  if (!called || n <= 0) return [];
+  const tail = called.slice(-n);
+  tail.reverse();
+  return tail;
+}
+
 export function activeCards(allCards, cardRange) {
   if (!cardRange) return allCards;
   const [lo, hi] = cardRange;

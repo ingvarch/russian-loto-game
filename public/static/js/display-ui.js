@@ -3,12 +3,23 @@ import * as logic from "./logic.js";
 const GRID_ROWS = 11;
 const GRID_COLS = 9;
 
+// Toggle the auxiliary panels ("4 из 5" и "Победители"). Set to true to bring
+// them back without touching markup — they're still rendered, just CSS-hidden.
+const SHOW_EXTRAS = false;
+
+const RECENT_TAIL = 5; // number of previous draws shown beside the current one
+
 let CARDS = [];
 let serverRange = null;
 
 const gridEl = document.getElementById("number-grid");
 const counterEl = document.getElementById("counter-called");
 const statusEl = document.getElementById("status");
+const currentBallEl = document.getElementById("current-ball");
+const currentNumEl = document.getElementById("current-num");
+const recentListEl = document.getElementById("recent-list");
+
+if (!SHOW_EXTRAS) document.body.classList.add("hide-extras");
 
 function numberAt(col, row) {
   if (col === 0) return row < 9 ? row + 1 : null;
@@ -73,6 +84,28 @@ function renderWinners(gameState, cards) {
   }
 }
 
+function renderCurrentAndRecent(calledArr) {
+  const recent = logic.recentCalled(calledArr, RECENT_TAIL + 1);
+  const current = recent.length > 0 ? recent[0] : null;
+  const prev = recent.slice(1);
+
+  if (current === null) {
+    currentBallEl.classList.add("empty");
+    currentNumEl.textContent = "—";
+  } else {
+    currentBallEl.classList.remove("empty");
+    currentNumEl.textContent = String(current);
+  }
+
+  recentListEl.innerHTML = "";
+  for (const num of prev) {
+    const ball = document.createElement("div");
+    ball.className = "recent-ball";
+    ball.textContent = String(num);
+    recentListEl.appendChild(ball);
+  }
+}
+
 function render(gameState) {
   if (!gameState) return;
 
@@ -92,6 +125,7 @@ function render(gameState) {
     cell.classList.toggle("last-called", num === lastCalled);
   }
 
+  renderCurrentAndRecent(gameState.called || []);
   renderPrize(gameState, cards);
 
   const closeCounts = logic.closeCountsByLevel(cards, called);
