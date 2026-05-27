@@ -18,6 +18,8 @@ const statusEl = document.getElementById("status");
 const currentBallEl = document.getElementById("current-ball");
 const currentNumEl = document.getElementById("current-num");
 const recentListEl = document.getElementById("recent-list");
+const winOverlayEl = document.getElementById("win-overlay");
+const winSeqEl = document.getElementById("win-seq");
 
 if (!SHOW_EXTRAS) document.body.classList.add("hide-extras");
 
@@ -143,6 +145,24 @@ function render(gameState) {
   }
 
   renderWinners(gameState, cards);
+  renderWinOverlay(gameState, cards);
+}
+
+// Fullscreen festive overlay shown once полное лото is confirmed by the host.
+// Auto-hides if the host resets the game (state.events without confirmed L3).
+function renderWinOverlay(gameState, cards) {
+  if (!winOverlayEl) return;
+  const r = logic.resolveLevel(gameState, cards, 3);
+  const decided = r.status === "decided" && r.winners.length >= 1;
+  if (decided) {
+    const seq = r.winners[0].seq;
+    winSeqEl.textContent = `№ ${String(seq).padStart(3, "0")}`;
+    winOverlayEl.classList.add("open");
+    winOverlayEl.setAttribute("aria-hidden", "false");
+  } else {
+    winOverlayEl.classList.remove("open");
+    winOverlayEl.setAttribute("aria-hidden", "true");
+  }
 }
 
 export function setConnected(connected) {

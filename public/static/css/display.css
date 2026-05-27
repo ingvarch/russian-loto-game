@@ -403,3 +403,89 @@ body.hide-extras .close-section {
     flex: 1;
   }
 }
+
+/* ---- Win overlay (полное лото) ---------------------------------------- */
+
+.win-overlay {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 24px;
+  background: radial-gradient(
+      circle at center,
+      rgba(40, 8, 0, 0.85) 0%,
+      rgba(0, 0, 0, 0.95) 70%
+    );
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.win-overlay.open {
+  display: flex;
+  animation: winFade 0.4s ease-out;
+}
+
+.win-card {
+  position: relative;
+  text-align: center;
+  padding: 56px 80px;
+  border-radius: 32px;
+  background: linear-gradient(180deg, #1c1c1e 0%, #2a1f10 100%);
+  border: 4px solid #ffcc33;
+  box-shadow:
+    0 0 0 8px rgba(255, 204, 51, 0.18),
+    0 30px 80px rgba(0, 0, 0, 0.7),
+    0 0 160px rgba(255, 180, 60, 0.55);
+  animation: winPop 0.65s cubic-bezier(0.2, 0.9, 0.3, 1.4);
+}
+
+.win-title {
+  font-size: clamp(2.8rem, 7vw, 5.5rem);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  margin-bottom: 32px;
+  background: linear-gradient(180deg, #fff5d0 0%, #ffcc33 45%, #d97014 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: titleShimmer 2.4s ease-in-out infinite;
+}
+
+.win-subtitle {
+  font-size: clamp(1rem, 1.8vw, 1.4rem);
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #ffcc33;
+  opacity: 0.85;
+  margin-bottom: 10px;
+}
+
+.win-seq {
+  font-size: clamp(3.2rem, 9vw, 7rem);
+  font-weight: 900;
+  color: #ffffff;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+@keyframes winFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes winPop {
+  0%   { transform: scale(0.6); opacity: 0; }
+  60%  { transform: scale(1.06); opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+@keyframes titleShimmer {
+  0%, 100% { filter: drop-shadow(0 0 14px rgba(255, 204, 51, 0.4)); }
+  50%      { filter: drop-shadow(0 0 30px rgba(255, 204, 51, 0.9)); }
+}

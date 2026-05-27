@@ -188,3 +188,21 @@ test("applyCallNumber: fifth call that closes a line emits confirmed event when 
   assert.equal(s.events.length, 1);
   assert.equal(s.events[0].status, "confirmed");
 });
+
+
+// ---- applyCallNumber preserves chronological order ----------------------
+//
+// The /display page reads `called[last]` as "the most recently drawn keg" and
+// `recentCalled` slices the tail to show the last five. Both rely on the
+// array staying in call order. Sorting state.called by value breaks this:
+// calling 50, then 8 would surface 50 (the largest) as "current" instead of 8.
+
+test("applyCallNumber: preserves chronological order regardless of value", () => {
+  const s = freshState();
+  const cards = [cardA];
+  applyCallNumber(s, 50, cards);
+  applyCallNumber(s, 8, cards);
+  applyCallNumber(s, 25, cards);
+  assert.deepEqual(s.called, [50, 8, 25]);
+  assert.equal(s.called[s.called.length - 1], 25);
+});

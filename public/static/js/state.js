@@ -170,8 +170,10 @@ export function recompute(state, cards, ts) {
 
 export function applyCallNumber(state, n, cards) {
   if (state.called.includes(n)) return { state, newPending: false };
+  // Append in chronological order: the /display page reads called[last] as
+  // "the most recently drawn keg" and recentCalled slices the tail for the
+  // "last five" panel. Sorting by value would silently break both.
   state.called.push(n);
-  state.called.sort((a, b) => a - b);
   const newPending = recompute(state, cards, nowHHMM());
   return { state, newPending };
 }

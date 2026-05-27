@@ -15,15 +15,22 @@ const SERVER_RANGE = JSON.parse(document.getElementById("server-range").textCont
 
 displayUI.init({ cards: CARDS, range: SERVER_RANGE });
 
-fetch("./api/state")
-  .then((r) => (r.ok ? r.json() : null))
-  .then((payload) => {
-    if (payload && payload.state) displayUI.render(payload.state);
-  })
-  .catch(() => {});
+function refetchState() {
+  return fetch("./api/state")
+    .then((r) => (r.ok ? r.json() : null))
+    .then((payload) => {
+      if (payload && payload.state) displayUI.render(payload.state);
+    })
+    .catch(() => {});
+}
+
+refetchState();
+
+let currentES = null;
 
 function connectSSE() {
   const es = new EventSource("./api/events");
+  currentES = es;
 
   es.onopen = () => displayUI.setConnected(true);
 
@@ -37,8 +44,22 @@ function connectSSE() {
   es.onerror = () => {
     displayUI.setConnected(false);
     es.close();
+    if (currentES === es) currentES = null;
     setTimeout(connectSSE, 2000);
   };
 }
 
 connectSSE();
+
+// When the tab/screen wakes from sleep, SSE can be stalled with no error fired
+// yet. Force a state refetch and reopen the stream so the display catches up
+// before the next mutation.
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "visible") return;
+  refetchState();
+  if (currentES) {
+    currentES.close();
+    currentES = null;
+  }
+  connectSSE();
+});
