@@ -404,6 +404,72 @@ body.hide-extras .close-section {
   }
 }
 
+/* ---- Theme toggle (bottom-right) --------------------------------------- */
+
+.theme-toggle {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-family: inherit;
+  font-size: 1.1rem;
+  line-height: 1;
+  opacity: 0.45;
+  transition: opacity 0.2s, transform 0.2s;
+  z-index: 50;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.theme-toggle:hover,
+.theme-toggle:focus-visible {
+  opacity: 1;
+  outline: none;
+}
+
+.theme-toggle:active {
+  transform: scale(0.92);
+}
+
+.theme-toggle-icon {
+  display: inline-block;
+  transform: rotate(0deg);
+  transition: transform 0.3s;
+}
+
+body.theme-light .theme-toggle-icon {
+  transform: rotate(180deg);
+}
+
+/* ---- Light theme override ---------------------------------------------- */
+
+body.theme-light {
+  --bg: #ffffff;
+  --surface: #f2f2f7;
+  --text: #1c1c1e;
+  --text-dim: #6c6c70;
+  --border: #d1d1d6;
+}
+
+body.theme-light .cell:not(.called) {
+  background: #d1d1d6;
+  color: #6c6c70;
+}
+
+body.theme-light .current-ball.empty {
+  background: #e5e5ea;
+}
+
 /* ---- Win overlay (полное лото) ---------------------------------------- */
 
 .win-overlay {

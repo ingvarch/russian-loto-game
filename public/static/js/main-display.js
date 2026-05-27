@@ -10,6 +10,26 @@
 
 import * as displayUI from "./display-ui.js";
 
+const THEME_KEY = "loto-display-theme";
+
+function readStoredTheme() {
+  try { return localStorage.getItem(THEME_KEY); } catch (_e) { return null; }
+}
+
+function writeStoredTheme(value) {
+  try { localStorage.setItem(THEME_KEY, value); } catch (_e) { /* private mode */ }
+}
+
+if (readStoredTheme() === "light") document.body.classList.add("theme-light");
+
+const themeBtn = document.getElementById("theme-toggle");
+if (themeBtn) {
+  themeBtn.addEventListener("click", () => {
+    const light = document.body.classList.toggle("theme-light");
+    writeStoredTheme(light ? "light" : "dark");
+  });
+}
+
 const CARDS = JSON.parse(document.getElementById("cards-data").textContent);
 const SERVER_RANGE = JSON.parse(document.getElementById("server-range").textContent);
 
