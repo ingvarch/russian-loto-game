@@ -247,8 +247,12 @@ main {
 
 /* ---- Hide auxiliary panels until needed -------------------------------- */
 
-body.hide-extras .close-section,
-body.hide-extras .winners-section {
+body.hide-extras .close-section {
+  display: none;
+}
+
+.winners-section.hidden,
+.winner-row.hidden {
   display: none;
 }
 

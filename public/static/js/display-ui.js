@@ -64,24 +64,32 @@ function renderPrize(gameState, cards) {
 }
 
 // Display winners via resolveLevel so host-picked tiebreak winners are shown
-// (not just first-by-seq from the raw event log).
+// (not just first-by-seq from the raw event log). Each row is mounted only
+// once the host has confirmed that level; the whole section is hidden until
+// at least one level is confirmed.
 function renderWinners(gameState, cards) {
+  const section = document.getElementById("winners-section");
+  if (!section) return;
+  let shown = 0;
   for (const lvl of [1, 2, 3]) {
     const row = document.getElementById(`winner-${lvl}`);
     if (!row) continue;
     const seqEl = row.querySelector(".winner-seq");
     const r = logic.resolveLevel(gameState, cards, lvl);
-    if (r.status === "decided" && r.winners.length >= 1) {
-      row.classList.add("won");
+    const decided = r.status === "decided" && r.winners.length >= 1;
+    row.classList.toggle("hidden", !decided);
+    row.classList.toggle("won", decided);
+    if (decided) {
       // For split=true ties we show the first (lowest seq); callers already
       // sorted. For split=false the resolve result collapses to a single
       // winner once the host picks, so this works uniformly.
       seqEl.textContent = `№ ${r.winners[0].seq}`;
+      shown += 1;
     } else {
-      row.classList.remove("won");
       seqEl.textContent = "—";
     }
   }
+  section.classList.toggle("hidden", shown === 0);
 }
 
 function renderCurrentAndRecent(calledArr) {
