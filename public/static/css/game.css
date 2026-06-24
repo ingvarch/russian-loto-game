@@ -277,6 +277,16 @@ header {
 }
 
 .log-section { padding-bottom: 24px; }
+.log-title { display: flex; align-items: baseline; justify-content: space-between; }
+.log-toggle-link {
+  border: none; background: none; padding: 0;
+  color: var(--accent);
+  font-size: 11px; font-weight: 600;
+  text-transform: none; letter-spacing: 0;
+  cursor: pointer;
+}
+.log-toggle-link.hidden { display: none; }
+.log-toggle-link:hover { text-decoration: underline; }
 .log-empty { color: var(--text-dim); font-size: 14px; padding: 8px 4px; }
 .log-section:not(.log-expanded) .log-overflow { display: none; }
 .log-toggle {

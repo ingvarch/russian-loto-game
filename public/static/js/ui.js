@@ -257,21 +257,26 @@ function renderLog() {
   renderLogToggle(events.length);
 }
 
-// "Показать все" control: hidden when events fit in LOG_VISIBLE. Beyond that
-// it reveals/collapses the overflow rows. Expanded state lives on the section
-// class so it survives re-renders (SSE pushes, resolutions).
+// "Показать все" controls: one in the header (collapse without scrolling),
+// one at the bottom of the list. Both reflect and flip the same .log-expanded
+// state on the section, which survives re-renders (SSE pushes, resolutions).
+// Hidden entirely when events fit in LOG_VISIBLE.
 function renderLogToggle(total) {
   const section = document.getElementById("log-section");
   const btn = document.getElementById("log-toggle");
-  if (!section || !btn) return;
+  const top = document.getElementById("log-toggle-top");
+  if (!section || !btn || !top) return;
   if (total <= LOG_VISIBLE) {
     btn.classList.add("hidden");
+    top.classList.add("hidden");
     section.classList.remove("log-expanded");
     return;
   }
   btn.classList.remove("hidden");
+  top.classList.remove("hidden");
   const expanded = section.classList.contains("log-expanded");
   btn.textContent = expanded ? "Свернуть" : "Показать все (" + total + ")";
+  top.textContent = expanded ? "Свернуть" : "Развернуть";
 }
 
 function renderClose() {
@@ -667,12 +672,15 @@ function maybeShowConfirmation() {
 
 function wireLogToggle() {
   const section = document.getElementById("log-section");
-  const btn = document.getElementById("log-toggle");
-  if (!section || !btn) return;
-  btn.addEventListener("click", () => {
+  if (!section) return;
+  const toggle = () => {
     section.classList.toggle("log-expanded");
     renderLogToggle(current.events.length);
-  });
+  };
+  for (const id of ["log-toggle", "log-toggle-top"]) {
+    const btn = document.getElementById(id);
+    if (btn) btn.addEventListener("click", toggle);
+  }
 }
 
 function reopenEvent(event) {
