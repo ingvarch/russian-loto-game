@@ -130,6 +130,7 @@ header {
   max-width: 600px; margin: 0 auto; padding: 8px 16px;
 }
 .winners-section.hidden, .payout-section.hidden { display: none; }
+.winners-section, .close-section { animation: slideIn 0.2s ease-out; }
 
 .winners-title, .payout-title, .log-title {
   font-size: 11px; font-weight: 600;
@@ -165,27 +166,28 @@ header {
 .winner-row.won.level-2 .winner-seq { color: var(--level2); }
 .winner-row.won.level-3 .winner-seq { color: var(--level3); }
 
-/* Desktop: three columns — Банк left, board center, Победители + События
-   right. Mobile keeps the natural DOM stack (board, winners, close, bank,
-   log). grid-template-areas place blocks regardless of source order. */
+.layout { display: flex; flex-direction: column; gap: 8px; }
+
+/* Each side column is a flex stack so hidden blocks collapse with no gap:
+   left holds Банк then Победители, right holds "4 из 5" then События. When
+   "4 из 5" is empty the log rises to the top of its column. */
+.col-side { display: flex; flex-direction: column; gap: 12px; }
+
+/* Desktop: three columns — left (Банк, Победители), board, right ("4 из 5",
+   События). Mobile keeps the DOM stack (board, left stack, right stack). */
 @media (min-width: 900px) {
   .layout {
     display: grid;
     grid-template-columns: 240px minmax(0, 1fr) 300px;
-    grid-template-areas:
-      "bank board winners"
-      "bank board close"
-      "bank board log";
-    align-content: start;
-    gap: 12px 16px;
+    grid-template-areas: "left board right";
+    align-items: start;
+    gap: 0 16px;
     max-width: 1100px; margin: 0 auto;
     padding: 20px 16px 0;
   }
+  .col-left { grid-area: left; }
   .area-board { grid-area: board; }
-  .area-bank { grid-area: bank; align-self: start; }
-  .area-winners { grid-area: winners; }
-  .area-close { grid-area: close; }
-  .area-log { grid-area: log; }
+  .col-right { grid-area: right; }
   .layout .winners-section,
   .layout .close-section,
   .layout .payout-section,
@@ -295,8 +297,8 @@ header {
   margin-bottom: 6px;
   cursor: pointer;
   font-size: 13px;
-  animation: slideIn 0.2s ease-out;
 }
+.log-entry.log-new { animation: slideIn 0.2s ease-out; }
 .log-entry:active { background: var(--border); }
 .log-entry .ts {
   color: var(--text-dim); font-variant-numeric: tabular-nums;

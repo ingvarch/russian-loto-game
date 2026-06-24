@@ -48,42 +48,46 @@
     <div class="grid" id="number-grid"></div>
   </div>
 
-  <section class="winners-section area-winners hidden" id="winners-section">
-    <div class="winners-title">Победители</div>
-    <div class="winners-list">
-      <div class="winner-row level-1 hidden" id="winner-1">
-        <span class="winner-label">одна линия</span>
-        <span class="winner-seq">&mdash;</span>
+  <div class="col-side col-left">
+    <section class="payout-section hidden" id="payout-section">
+      <div class="payout-title">
+        <span>Банк</span>
+        <span class="total" id="payout-total">0</span>
       </div>
-      <div class="winner-row level-2 hidden" id="winner-2">
-        <span class="winner-label">две линии</span>
-        <span class="winner-seq">&mdash;</span>
+      <div class="payout-grid" id="payout-grid"></div>
+    </section>
+
+    <section class="winners-section hidden" id="winners-section">
+      <div class="winners-title">Победители</div>
+      <div class="winners-list">
+        <div class="winner-row level-1 hidden" id="winner-1">
+          <span class="winner-label">одна линия</span>
+          <span class="winner-seq">&mdash;</span>
+        </div>
+        <div class="winner-row level-2 hidden" id="winner-2">
+          <span class="winner-label">две линии</span>
+          <span class="winner-seq">&mdash;</span>
+        </div>
+        <div class="winner-row level-3 hidden" id="winner-3">
+          <span class="winner-label">полное лото</span>
+          <span class="winner-seq">&mdash;</span>
+        </div>
       </div>
-      <div class="winner-row level-3 hidden" id="winner-3">
-        <span class="winner-label">полное лото</span>
-        <span class="winner-seq">&mdash;</span>
-      </div>
-    </div>
-  </section>
+    </section>
+  </div>
 
-  <section class="close-section area-close hidden" id="close-section">
-    <span class="close-label" id="close-label">4 из 5 в линии:</span>
-    <span class="close-list" id="close-list"></span>
-  </section>
+  <div class="col-side col-right">
+    <section class="close-section hidden" id="close-section">
+      <span class="close-label" id="close-label">4 из 5 в линии:</span>
+      <span class="close-list" id="close-list"></span>
+    </section>
 
-  <section class="payout-section area-bank hidden" id="payout-section">
-    <div class="payout-title">
-      <span>Банк</span>
-      <span class="total" id="payout-total">0</span>
-    </div>
-    <div class="payout-grid" id="payout-grid"></div>
-  </section>
-
-  <section class="log-section area-log" id="log-section">
-    <div class="log-title">События</div>
-    <div id="log"></div>
-    <button type="button" class="log-toggle hidden" id="log-toggle"></button>
-  </section>
+    <section class="log-section" id="log-section">
+      <div class="log-title">События</div>
+      <div id="log"></div>
+      <button type="button" class="log-toggle hidden" id="log-toggle"></button>
+    </section>
+  </div>
 </div>
 
 <div class="modal-backdrop" id="confirm-uncall">

@@ -196,20 +196,40 @@ function renderCells() {
   }
 }
 
+const LOG_VISIBLE = 5;
+const eventKey = (e) => e.cid + ":" + e.level + ":" + e.callCount;
+// Rebuild the log only when the event list actually changed, so unrelated
+// state pushes (a called number, an SSE heartbeat) don't reflow and flicker
+// the list. Only rows whose key is new since the last build animate in.
+let lastLogSig = null;
+let prevLogKeys = new Set();
+
 function renderLog() {
   counterEl.textContent = String(current.called.length);
-  const activeList = active();
-  document.getElementById("card-count").textContent = activeList.length + " карт";
-  if (current.events.length === 0) {
+  document.getElementById("card-count").textContent = active().length + " карт";
+
+  const events = current.events;
+  const sig = events.map((e) => eventKey(e) + (e.status || "")).join("|");
+  if (sig === lastLogSig) return;
+  lastLogSig = sig;
+
+  if (events.length === 0) {
     logEl.innerHTML = '<div class="log-empty">Событий пока нет</div>';
+    prevLogKeys = new Set();
+    renderLogToggle(0);
     return;
   }
+
   logEl.innerHTML = "";
-  current.events.forEach((e, i) => {
-    const row = document.createElement("div");
+  const keys = new Set();
+  events.forEach((e, i) => {
+    const key = eventKey(e);
+    keys.add(key);
     const status = e.status || "confirmed";
+    const row = document.createElement("div");
     row.className = "log-entry level-" + e.level + " status-" + status;
     if (i >= LOG_VISIBLE) row.classList.add("log-overflow");
+    if (!prevLogKeys.has(key)) row.classList.add("log-new");
     const levelText = LEVEL_LABELS[e.level];
     let suffix = "";
     if (status === "pending") suffix = " · ждёт подтверждения";
@@ -233,10 +253,9 @@ function renderLog() {
     }
     logEl.appendChild(row);
   });
-  renderLogToggle(current.events.length);
+  prevLogKeys = keys;
+  renderLogToggle(events.length);
 }
-
-const LOG_VISIBLE = 5;
 
 // "Показать все" control: hidden when events fit in LOG_VISIBLE. Beyond that
 // it reveals/collapses the overflow rows. Expanded state lives on the section
