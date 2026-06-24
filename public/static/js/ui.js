@@ -180,7 +180,15 @@ function renderWinners() {
     row.classList.toggle("hidden", !decided);
     row.classList.toggle("won", decided);
     if (decided) {
-      seqEl.textContent = "№ " + r.winners.map((c) => c.seq).join(", ");
+      seqEl.textContent = "";
+      r.winners.forEach((c, i) => {
+        if (i > 0) seqEl.appendChild(document.createTextNode(", "));
+        const item = document.createElement("span");
+        item.className = "winner-seq-item";
+        item.textContent = "№ " + c.seq;
+        item.addEventListener("click", () => openSheet(c.cid));
+        seqEl.appendChild(item);
+      });
       shown += 1;
     } else {
       seqEl.textContent = "—";

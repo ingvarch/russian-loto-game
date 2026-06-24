@@ -162,6 +162,8 @@ header {
   font-weight: 700; font-variant-numeric: tabular-nums;
   font-size: 16px;
 }
+.winner-seq-item { cursor: pointer; }
+.winner-seq-item:hover { text-decoration: underline; }
 .winner-row.won.level-1 .winner-seq { color: var(--level1); }
 .winner-row.won.level-2 .winner-seq { color: var(--level2); }
 .winner-row.won.level-3 .winner-seq { color: var(--level3); }
