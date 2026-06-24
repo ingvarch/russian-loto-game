@@ -66,6 +66,7 @@ export function init({ cards, initialState, onSave, autoOpenNewGame }) {
   wireUncallModal();
   wireWinContinueModal();
   wireNewGameModal();
+  wireLogToggle();
   wireWinOverlay();
   wireBottomSheet();
 
@@ -153,11 +154,38 @@ function maybeShowAutoWin() {
 
 function render() {
   renderCells();
+  renderWinners();
   renderClose();
   renderPayout();
   renderLog();
   maybeShowConfirmation();
   maybeShowTiebreak();
+}
+
+// Mirror of the /display winners panel: each level row shows once the host
+// has confirmed it, via resolveLevel so host-picked tiebreak winners surface.
+// Whole section hidden until at least one level is decided.
+function renderWinners() {
+  const section = document.getElementById("winners-section");
+  if (!section) return;
+  const cards = active();
+  let shown = 0;
+  for (const lvl of [1, 2, 3]) {
+    const row = document.getElementById("winner-" + lvl);
+    if (!row) continue;
+    const seqEl = row.querySelector(".winner-seq");
+    const r = logic.resolveLevel(current, cards, lvl);
+    const decided = r.status === "decided" && r.winners.length >= 1;
+    row.classList.toggle("hidden", !decided);
+    row.classList.toggle("won", decided);
+    if (decided) {
+      seqEl.textContent = "№ " + r.winners.map((c) => c.seq).join(", ");
+      shown += 1;
+    } else {
+      seqEl.textContent = "—";
+    }
+  }
+  section.classList.toggle("hidden", shown === 0);
 }
 
 function renderCells() {
@@ -177,10 +205,11 @@ function renderLog() {
     return;
   }
   logEl.innerHTML = "";
-  for (const e of current.events) {
+  current.events.forEach((e, i) => {
     const row = document.createElement("div");
     const status = e.status || "confirmed";
     row.className = "log-entry level-" + e.level + " status-" + status;
+    if (i >= LOG_VISIBLE) row.classList.add("log-overflow");
     const levelText = LEVEL_LABELS[e.level];
     let suffix = "";
     if (status === "pending") suffix = " · ждёт подтверждения";
@@ -203,7 +232,27 @@ function renderLog() {
       row.appendChild(reopenBtn);
     }
     logEl.appendChild(row);
+  });
+  renderLogToggle(current.events.length);
+}
+
+const LOG_VISIBLE = 5;
+
+// "Показать все" control: hidden when events fit in LOG_VISIBLE. Beyond that
+// it reveals/collapses the overflow rows. Expanded state lives on the section
+// class so it survives re-renders (SSE pushes, resolutions).
+function renderLogToggle(total) {
+  const section = document.getElementById("log-section");
+  const btn = document.getElementById("log-toggle");
+  if (!section || !btn) return;
+  if (total <= LOG_VISIBLE) {
+    btn.classList.add("hidden");
+    section.classList.remove("log-expanded");
+    return;
   }
+  btn.classList.remove("hidden");
+  const expanded = section.classList.contains("log-expanded");
+  btn.textContent = expanded ? "Свернуть" : "Показать все (" + total + ")";
 }
 
 function renderClose() {
@@ -595,6 +644,16 @@ function maybeShowConfirmation() {
 
   modal.classList.add("open");
   grid.classList.add("blocked");
+}
+
+function wireLogToggle() {
+  const section = document.getElementById("log-section");
+  const btn = document.getElementById("log-toggle");
+  if (!section || !btn) return;
+  btn.addEventListener("click", () => {
+    section.classList.toggle("log-expanded");
+    renderLogToggle(current.events.length);
+  });
 }
 
 function reopenEvent(event) {
