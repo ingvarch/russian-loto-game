@@ -386,21 +386,70 @@ body.hide-extras .close-section {
   background: rgba(255, 96, 88, 0.15);
 }
 
-/* ---- Responsive: tall/narrow screens ------------------------------------ */
+/* ---- Responsive: portrait / phone --------------------------------------- */
 
+/* Stack the board on top, then a compact strip: the big last ball shares a row
+ * with the 5 previous draws (flex-wrap), and the bank / winners panels span the
+ * full width below. Sized with vw clamps so nothing jumps as numbers change. */
 @media (max-width: 800px) {
+  header {
+    padding: 10px 16px;
+  }
+  .counter {
+    font-size: 1.6rem;
+  }
   main {
     flex-direction: column;
     height: auto;
+    gap: 14px;
+    padding: 12px;
+    /* clear the fixed theme toggle pinned bottom-right */
+    padding-bottom: 64px;
+  }
+  .grid-wrap {
+    flex: 0 0 auto;
+    width: 100%;
+  }
+  .grid {
+    gap: 5px;
   }
   .sidebar {
     width: 100%;
     flex-direction: row;
-    gap: 16px;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px;
   }
-  .close-section,
+  .current-section {
+    flex: 0 0 auto;
+    flex-direction: row;
+    align-items: center;
+    gap: 14px;
+  }
+  .current-section .section-title,
+  .recent-section .section-title {
+    display: none;
+  }
+  .current-ball {
+    width: clamp(76px, 24vw, 112px);
+    height: clamp(76px, 24vw, 112px);
+  }
+  .current-num {
+    font-size: clamp(2.4rem, 10vw, 3.6rem);
+  }
+  .current-ball.empty .current-num {
+    font-size: 1.6rem;
+  }
+  .recent-section {
+    flex: 1 1 150px;
+    min-width: 0;
+  }
+  .recent-list {
+    gap: 6px;
+  }
+  .prize-section,
   .winners-section {
-    flex: 1;
+    flex: 1 1 100%;
   }
 }
 
