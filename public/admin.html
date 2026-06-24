@@ -78,7 +78,14 @@
 
   <div class="col-side col-right">
     <section class="close-section hidden" id="close-section">
-      <span class="close-label" id="close-label">4 из 5 в линии:</span>
+      <div class="close-head">
+        <span class="close-label" id="close-label"></span>
+        <button type="button" class="close-help-btn" id="close-help-btn" title="Что это?" aria-label="Что это?">?</button>
+      </div>
+      <p class="close-help hidden" id="close-help">
+        Карточки, которым до следующего выигрыша не хватает одного числа.
+        Цель меняется по ходу игры: одна линия → две линии → полное лото.
+      </p>
       <span class="close-list" id="close-list"></span>
     </section>
 

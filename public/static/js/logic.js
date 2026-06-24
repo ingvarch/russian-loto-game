@@ -86,6 +86,25 @@ export function closeCountsByLevel(cards, called) {
   return counts;
 }
 
+// Cards one call away from reaching `level`: already at level-1 lines closed
+// and holding an unclosed 4/5 row. Level 1 -> cards close to their first line,
+// level 2 -> one line down and 4/5 on a second, level 3 -> two down and 4/5
+// on the last. The admin panel shows only the level the game is chasing next.
+export function closeCardsForLevel(cards, called, level) {
+  return cards.filter(
+    (card) => levelOf(card, called) === level - 1 && isCardClose(card, called),
+  );
+}
+
+// The level the game is chasing next: the lowest of 1..3 not yet decided.
+// Returns null once полное лото is decided (nothing left to chase).
+export function nextTargetLevel(state, cards) {
+  for (const level of [1, 2, 3]) {
+    if (resolveLevel(state, cards, level).status !== "decided") return level;
+  }
+  return null;
+}
+
 // First confirmed winner per level, used by the /display page. Events with
 // status "pending" or "absent" are skipped -- we only surface cards that
 // the admin has confirmed are actually playing. For ties on callCount,

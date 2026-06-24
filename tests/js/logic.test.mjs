@@ -13,12 +13,14 @@ import {
   activeCards,
   calledSet,
   closeCards,
+  closeCardsForLevel,
   closeCountsByLevel,
   computePayouts,
   hasPendingEvents,
   isCardClose,
   levelOf,
   nextPendingBatch,
+  nextTargetLevel,
   nextTiebreakBatch,
   recentCalled,
   resolveLevel,
@@ -167,6 +169,65 @@ test("closeCountsByLevel: level-3 cards are excluded", () => {
   const counts = closeCountsByLevel([simple], all);
   assert.deepEqual(counts, { 1: 0, 2: 0, 3: 0 });
 });
+
+// ---- closeCardsForLevel ---------------------------------------------------
+
+test("closeCardsForLevel: level 1 returns cards at level 0 that are 4/5", () => {
+  const x = card(1, "x", [
+    [1, 2, 3, 4, "_", 50, "_", "_", "_"],
+    ["_", "_", "_", "_", "_", 56, 66, 76, 86],
+    ["_", "_", "_", "_", "_", 57, 67, 77, 87],
+  ]);
+  const called = new Set([1, 2, 3, 4]); // row 0 at 4/5, levelOf 0
+  assert.deepEqual(closeCardsForLevel([x], called, 1).map((c) => c.cid), ["x"]);
+  assert.deepEqual(closeCardsForLevel([x], called, 2), []);
+});
+
+test("closeCardsForLevel: level 2 returns cards with one line closed and another 4/5", () => {
+  const c2 = card(1, "x", [
+    [1, 2, 3, 4, 5, "_", "_", "_", "_"],
+    ["_", 11, "_", "_", "_", 56, 66, 76, 86],
+    ["_", "_", "_", "_", "_", 57, 67, 77, 87],
+  ]);
+  const called = new Set([1, 2, 3, 4, 5, 11, 56, 66, 76]); // row 0 closed, row 1 at 4/5
+  assert.deepEqual(closeCardsForLevel([c2], called, 2).map((c) => c.cid), ["x"]);
+  assert.deepEqual(closeCardsForLevel([c2], called, 1), []);
+});
+
+
+// ---- nextTargetLevel ------------------------------------------------------
+
+const cidCards = [
+  { cid: "a", seq: 1, rows: [] },
+  { cid: "b", seq: 2, rows: [] },
+];
+
+test("nextTargetLevel: no winners yet -> 1", () => {
+  assert.equal(nextTargetLevel({ events: [], split: true }, cidCards), 1);
+});
+
+test("nextTargetLevel: level 1 decided -> 2", () => {
+  const state = { split: true, events: [{ cid: "a", seq: 1, level: 1, callCount: 5, status: "confirmed" }] };
+  assert.equal(nextTargetLevel(state, cidCards), 2);
+});
+
+test("nextTargetLevel: levels 1 and 2 decided -> 3", () => {
+  const state = { split: true, events: [
+    { cid: "a", seq: 1, level: 1, callCount: 5, status: "confirmed" },
+    { cid: "b", seq: 2, level: 2, callCount: 9, status: "confirmed" },
+  ] };
+  assert.equal(nextTargetLevel(state, cidCards), 3);
+});
+
+test("nextTargetLevel: all levels decided -> null", () => {
+  const state = { split: true, events: [
+    { cid: "a", seq: 1, level: 1, callCount: 5, status: "confirmed" },
+    { cid: "b", seq: 2, level: 2, callCount: 9, status: "confirmed" },
+    { cid: "a", seq: 1, level: 3, callCount: 12, status: "confirmed" },
+  ] };
+  assert.equal(nextTargetLevel(state, cidCards), null);
+});
+
 
 test("closeCountsByLevel: card with one line closed and another 4/5 -> level 2 bucket", () => {
   // Row 0 fully closed (level 1). Row 1 at 4/5.

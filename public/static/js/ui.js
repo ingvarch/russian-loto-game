@@ -67,6 +67,7 @@ export function init({ cards, initialState, onSave, autoOpenNewGame }) {
   wireWinContinueModal();
   wireNewGameModal();
   wireLogToggle();
+  wireCloseHelp();
   wireWinOverlay();
   wireBottomSheet();
 
@@ -279,19 +280,25 @@ function renderLogToggle(total) {
   top.textContent = expanded ? "Свернуть" : "Развернуть";
 }
 
+const TARGET_LABELS = { 1: "одной линии", 2: "двум линиям", 3: "полному лото" };
+
+// "Близки к ..." panel: cards a single call from the level the game is chasing
+// next. Once one line is won the count switches to cards close to two lines,
+// then to полное лото. Hidden when the game is over or no card is close.
 function renderClose() {
   const called = calledSet();
-  const close = logic.closeCards(active(), called);
   const section = document.getElementById("close-section");
   const label = document.getElementById("close-label");
   const list = document.getElementById("close-list");
+  const target = logic.nextTargetLevel(current, active());
+  const close = target === null ? [] : logic.closeCardsForLevel(active(), called, target);
   if (close.length === 0) {
     section.classList.add("hidden");
     list.innerHTML = "";
     return;
   }
   section.classList.remove("hidden");
-  label.textContent = "4 из 5 в линии (" + close.length + "):";
+  label.textContent = "Близки к " + TARGET_LABELS[target] + " (" + close.length + ")";
   close.sort((a, b) => a.seq - b.seq);
   list.innerHTML = "";
   for (const card of close) {
@@ -681,6 +688,13 @@ function wireLogToggle() {
     const btn = document.getElementById(id);
     if (btn) btn.addEventListener("click", toggle);
   }
+}
+
+function wireCloseHelp() {
+  const btn = document.getElementById("close-help-btn");
+  const help = document.getElementById("close-help");
+  if (!btn || !help) return;
+  btn.addEventListener("click", () => help.classList.toggle("hidden"));
 }
 
 function reopenEvent(event) {
