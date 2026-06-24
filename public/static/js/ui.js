@@ -411,6 +411,21 @@ let pendingUncall = null;
 function askUncall(n) {
   pendingUncall = n;
   document.getElementById("confirm-uncall-num").textContent = String(n);
+  const warnEl = document.getElementById("confirm-uncall-warning");
+  const confirmBtn = document.querySelector('#confirm-uncall [data-action="confirm"]');
+  const locked = logic.winnersLockedNumbers(current, active());
+  if (locked.has(n)) {
+    const where = locked
+      .get(n)
+      .map((w) => "#" + String(w.seq).padStart(3, "0") + " (" + LEVEL_LABELS[w.level] + ")")
+      .join(", ");
+    warnEl.textContent = "Это число закрывает выигрышную линию: " + where + ". Отжатие отменит победу.";
+    warnEl.classList.remove("hidden");
+    confirmBtn.classList.add("btn-danger");
+  } else {
+    warnEl.classList.add("hidden");
+    confirmBtn.classList.remove("btn-danger");
+  }
   document.getElementById("confirm-uncall").classList.add("open");
 }
 

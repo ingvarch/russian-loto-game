@@ -95,6 +95,31 @@ export function canReopenEvent(event, calledCount, window) {
   return calledCount - event.callCount <= window;
 }
 
+// Called numbers that hold up a confirmed win: removing one would drop a
+// winner card below the level it won, silently undoing the result. Keyed by
+// number -> [{ seq, level }] of the wins it supports, so the uncall modal can
+// name what would break. Used to warn (not block) before отжатие.
+export function winnersLockedNumbers(state, cards) {
+  const called = calledSet(state.called || []);
+  const map = new Map();
+  for (const level of [1, 2, 3]) {
+    const r = resolveLevel(state, cards, level);
+    if (r.status !== "decided") continue;
+    for (const card of r.winners) {
+      for (const n of card.numbers) {
+        if (!called.has(n)) continue;
+        const without = new Set(called);
+        without.delete(n);
+        if (levelOf(card, without) < level) {
+          if (!map.has(n)) map.set(n, []);
+          map.get(n).push({ seq: card.seq, level });
+        }
+      }
+    }
+  }
+  return map;
+}
+
 // Whether the log's rollback button should appear for an event. Combines the
 // ball-count window with a guard against pointless undos: once a level is
 // decided, only the winning crossing (earliest callCount) is worth reopening.

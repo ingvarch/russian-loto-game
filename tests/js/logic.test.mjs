@@ -28,6 +28,7 @@ import {
   resolveLevel,
   rowHits,
   winnersByLevel,
+  winnersLockedNumbers,
 } from "../../public/static/js/logic.js";
 
 
@@ -218,6 +219,48 @@ test("isEventReopenable: an absent event is reopenable by its own age", () => {
 test("isEventReopenable: pending events are never reopenable", () => {
   const pendingEv = { cid: "a", seq: 1, level: 1, callCount: 30, status: "pending" };
   assert.equal(isEventReopenable({ events: [pendingEv] }, pendingEv, 31, 5), false);
+});
+
+
+// ---- winnersLockedNumbers -------------------------------------------------
+
+test("winnersLockedNumbers: numbers completing a level-1 winner's line are locked", () => {
+  const w = card(1, "a", [
+    [1, 2, 3, 4, 5, "_", "_", "_", "_"],
+    ["_", "_", "_", "_", "_", 50, 60, 70, 80],
+    ["_", "_", "_", "_", "_", 55, 65, 75, 85],
+  ]);
+  const state = {
+    split: true,
+    called: [1, 2, 3, 4, 5, 50], // row 0 closed (won), 50 is a lone hit on row 1
+    events: [{ cid: "a", seq: 1, level: 1, callCount: 5, status: "confirmed" }],
+  };
+  const m = winnersLockedNumbers(state, [w]);
+  assert.equal(m.size, 5);
+  assert.ok(m.has(1) && m.has(5));
+  assert.ok(!m.has(50)); // removing 50 keeps the card at level 1
+  assert.deepEqual(m.get(3), [{ seq: 1, level: 1 }]);
+});
+
+test("winnersLockedNumbers: a level-2 winner locks both of its closed lines", () => {
+  const w = card(2, "b", [
+    [1, 2, 3, 4, 5, "_", "_", "_", "_"],
+    ["_", 11, "_", "_", "_", 56, 66, 76, 86],
+    ["_", "_", "_", "_", "_", 57, 67, 77, 87],
+  ]);
+  const state = {
+    split: true,
+    called: [1, 2, 3, 4, 5, 11, 56, 66, 76, 86],
+    events: [{ cid: "b", seq: 2, level: 2, callCount: 10, status: "confirmed" }],
+  };
+  const m = winnersLockedNumbers(state, [w]);
+  assert.equal(m.size, 10); // both closed rows are load-bearing for the 2-line win
+  assert.ok(m.has(1) && m.has(56));
+});
+
+test("winnersLockedNumbers: no decided level -> empty map", () => {
+  const state = { split: true, called: [1, 2, 3], events: [] };
+  assert.equal(winnersLockedNumbers(state, []).size, 0);
 });
 
 

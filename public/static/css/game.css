@@ -367,6 +367,14 @@ header {
 }
 .modal-title { font-size: 17px; font-weight: 600; margin: 0 0 8px; }
 .modal-text { font-size: 14px; color: var(--text-dim); margin: 0 0 16px; }
+.modal-warning {
+  font-size: 14px; line-height: 1.4;
+  color: var(--level3); font-weight: 600;
+  background: color-mix(in srgb, var(--level3) 12%, var(--surface));
+  border: 1px solid var(--level3); border-radius: 10px;
+  padding: 10px 12px; margin: 0 0 16px;
+}
+.modal-warning.hidden { display: none; }
 .modal-actions { display: flex; gap: 8px; }
 .modal-actions button {
   flex: 1; padding: 12px; border-radius: 10px; border: none;
