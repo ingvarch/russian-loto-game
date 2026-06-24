@@ -123,35 +123,39 @@ header {
   cursor: default; opacity: 0.3;
 }
 
-/* Winners panel: stacks under the grid on mobile (between field and
-   "4 из 5"), moves to a sticky right column on wide viewports. */
-.winners-section {
-  padding: 0 16px 4px;
-  max-width: 600px; margin: 0 auto 6px;
+/* Shared side-panel style. Банк, Победители и События use one row and one
+   title look so the three blocks line up and read as a family. Mobile stacks
+   them (winners between field and "4 из 5"); desktop splits into columns. */
+.winners-section, .payout-section, .log-section {
+  max-width: 600px; margin: 0 auto; padding: 8px 16px;
 }
-.winners-section.hidden { display: none; }
-.winners-title {
+.winners-section.hidden, .payout-section.hidden { display: none; }
+
+.winners-title, .payout-title, .log-title {
+  font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.5px;
   color: var(--text-dim);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-weight: 600;
-  font-size: 11px;
-  margin-bottom: 6px;
+  margin: 0 0 8px; padding: 0 2px;
 }
-.winners-list { display: flex; flex-direction: column; gap: 6px; }
-.winner-row {
-  display: flex; align-items: baseline; justify-content: space-between;
-  gap: 10px;
-  padding: 8px 12px;
+
+/* One row look: surface card, level-coloured left edge, compact padding. */
+.winner-row, .payout-row, .log-entry {
   background: var(--surface);
   border: 1px solid var(--border);
   border-left: 4px solid var(--border);
   border-radius: 10px;
+  padding: 8px 12px;
+}
+.winner-row.level-1, .payout-row.level-1, .log-entry.level-1 { border-left-color: var(--level1); }
+.winner-row.level-2, .payout-row.level-2, .log-entry.level-2 { border-left-color: var(--level2); }
+.winner-row.level-3, .payout-row.level-3, .log-entry.level-3 { border-left-color: var(--level3); }
+
+.winners-list { display: flex; flex-direction: column; gap: 6px; }
+.winner-row {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 10px;
 }
 .winner-row.hidden { display: none; }
-.winner-row.level-1 { border-left-color: var(--level1); }
-.winner-row.level-2 { border-left-color: var(--level2); }
-.winner-row.level-3 { border-left-color: var(--level3); }
 .winner-label { color: var(--text-dim); font-size: 13px; }
 .winner-seq {
   font-weight: 700; font-variant-numeric: tabular-nums;
@@ -185,7 +189,7 @@ header {
   .layout .winners-section,
   .layout .close-section,
   .layout .payout-section,
-  .layout .log-section { max-width: none; margin: 0; padding-left: 0; padding-right: 0; }
+  .layout .log-section { max-width: none; margin: 0; padding: 0; }
 }
 
 .close-section {
@@ -220,21 +224,8 @@ header {
 }
 .close-chip:active { transform: scale(0.95); background: var(--accent); color: var(--accent-text); }
 
-.payout-section {
-  padding: 8px 12px 4px;
-  max-width: 600px; margin: 0 auto;
-}
-.payout-section.hidden { display: none; }
 .payout-title {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--text-dim);
-  padding: 8px 4px 6px;
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
+  display: flex; justify-content: space-between; align-items: baseline;
 }
 .payout-title .total {
   color: var(--text);
@@ -244,18 +235,14 @@ header {
   letter-spacing: 0;
 }
 .payout-grid {
-  display: flex; flex-direction: column; gap: 4px;
+  display: flex; flex-direction: column; gap: 6px;
 }
 .payout-row {
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  font-size: 14px;
+  font-size: 13px;
 }
 .payout-row .payout-level { font-weight: 600; }
 .payout-row .payout-winners {
@@ -270,9 +257,6 @@ header {
   font-variant-numeric: tabular-nums;
   color: var(--text);
 }
-.payout-row.level-1 { border-left: 3px solid var(--level1); }
-.payout-row.level-2 { border-left: 3px solid var(--level2); }
-.payout-row.level-3 { border-left: 3px solid var(--level3); }
 .payout-row.pending { border-style: dashed; }
 .payout-row.pending .payout-winners { color: var(--level3); font-weight: 600; }
 .payout-row.unclaimed .payout-winners { color: var(--text-dim); font-style: italic; }
@@ -290,18 +274,13 @@ header {
   font-variant-numeric: tabular-nums;
 }
 
-.log-section { padding: 0 12px 24px; max-width: 600px; margin: 0 auto; }
-.log-title {
-  font-size: 13px; font-weight: 600; text-transform: uppercase;
-  color: var(--text-dim); letter-spacing: 0.5px;
-  padding: 16px 4px 8px;
-}
+.log-section { padding-bottom: 24px; }
 .log-empty { color: var(--text-dim); font-size: 14px; padding: 8px 4px; }
 .log-section:not(.log-expanded) .log-overflow { display: none; }
 .log-toggle {
   width: 100%;
-  margin-top: 4px;
-  padding: 10px;
+  margin-top: 6px;
+  padding: 9px;
   background: transparent;
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -312,29 +291,23 @@ header {
 .log-toggle:active { background: var(--border); color: var(--text); }
 .log-toggle.hidden { display: none; }
 .log-entry {
-  display: flex; align-items: center; gap: 12px;
-  padding: 12px 14px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  display: flex; align-items: center; gap: 10px;
   margin-bottom: 6px;
   cursor: pointer;
+  font-size: 13px;
   animation: slideIn 0.2s ease-out;
 }
 .log-entry:active { background: var(--border); }
 .log-entry .ts {
-  color: var(--text-dim); font-size: 13px; font-variant-numeric: tabular-nums;
-  min-width: 40px;
+  color: var(--text-dim); font-variant-numeric: tabular-nums;
+  min-width: 38px;
 }
 .log-entry .seq {
   font-weight: 700; font-variant-numeric: tabular-nums;
-  min-width: 50px;
+  min-width: 44px;
 }
 .log-entry .level { font-weight: 500; flex: 1; }
-.log-entry.level-1 { border-left: 4px solid var(--level1); }
-.log-entry.level-2 { border-left: 4px solid var(--level2); }
 .log-entry.level-3 {
-  border-left: 4px solid var(--level3);
   background: color-mix(in srgb, var(--level3) 10%, var(--surface));
 }
 .log-entry.level-1 .level { color: var(--level1); }
@@ -533,12 +506,12 @@ header {
 }
 .log-reopen {
   flex: none;
-  width: 32px; height: 32px;
+  width: 26px; height: 26px;
   border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
+  border-radius: 7px;
+  background: var(--bg);
   color: var(--text-dim);
-  font-size: 16px; line-height: 1;
+  font-size: 14px; line-height: 1;
   cursor: pointer;
   display: flex; align-items: center; justify-content: center;
 }
