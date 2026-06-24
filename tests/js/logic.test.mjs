@@ -12,8 +12,10 @@ import assert from "node:assert/strict";
 import {
   activeCards,
   calledSet,
+  canReopenEvent,
   closeCards,
   closeCardsForLevel,
+  isEventReopenable,
   closeCountsByLevel,
   computePayouts,
   hasPendingEvents,
@@ -169,6 +171,55 @@ test("closeCountsByLevel: level-3 cards are excluded", () => {
   const counts = closeCountsByLevel([simple], all);
   assert.deepEqual(counts, { 1: 0, 2: 0, 3: 0 });
 });
+
+// ---- canReopenEvent -------------------------------------------------------
+
+test("canReopenEvent: within the window is reopenable", () => {
+  assert.equal(canReopenEvent({ callCount: 20 }, 20, 5), true); // distance 0
+  assert.equal(canReopenEvent({ callCount: 20 }, 25, 5), true); // distance 5 == window
+});
+
+test("canReopenEvent: past the window is locked", () => {
+  assert.equal(canReopenEvent({ callCount: 20 }, 26, 5), false); // distance 6
+  assert.equal(canReopenEvent({ callCount: 20 }, 40, 5), false);
+});
+
+test("canReopenEvent: legacy event without callCount stays reopenable", () => {
+  assert.equal(canReopenEvent({}, 30, 5), true);
+});
+
+
+// ---- isEventReopenable ----------------------------------------------------
+
+const winnerEv = { cid: "a", seq: 1, level: 1, callCount: 30, status: "confirmed" };
+const trailingEv = { cid: "b", seq: 2, level: 1, callCount: 32, status: "confirmed" };
+
+test("isEventReopenable: the winning event is reopenable inside the window", () => {
+  const state = { events: [winnerEv, trailingEv] };
+  assert.equal(isEventReopenable(state, winnerEv, 33, 5), true);
+});
+
+test("isEventReopenable: a trailing non-winner on a decided level is locked even inside the window", () => {
+  const state = { events: [winnerEv, trailingEv] };
+  assert.equal(isEventReopenable(state, trailingEv, 33, 5), false);
+});
+
+test("isEventReopenable: the winner locks once the window passes", () => {
+  const state = { events: [winnerEv, trailingEv] };
+  assert.equal(isEventReopenable(state, winnerEv, 40, 5), false);
+});
+
+test("isEventReopenable: an absent event is reopenable by its own age", () => {
+  const absentEv = { cid: "a", seq: 1, level: 1, callCount: 30, status: "absent" };
+  assert.equal(isEventReopenable({ events: [absentEv] }, absentEv, 33, 5), true);
+  assert.equal(isEventReopenable({ events: [absentEv] }, absentEv, 40, 5), false);
+});
+
+test("isEventReopenable: pending events are never reopenable", () => {
+  const pendingEv = { cid: "a", seq: 1, level: 1, callCount: 30, status: "pending" };
+  assert.equal(isEventReopenable({ events: [pendingEv] }, pendingEv, 31, 5), false);
+});
+
 
 // ---- closeCardsForLevel ---------------------------------------------------
 

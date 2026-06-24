@@ -535,6 +535,8 @@ header {
   text-decoration: line-through;
   text-decoration-thickness: 1px;
 }
+/* Past the rollback window: resolution is final, no undo button, greyed. */
+.log-entry.locked { opacity: 0.5; background: transparent; border-left-color: var(--border); }
 .log-reopen {
   flex: none;
   width: 26px; height: 26px;

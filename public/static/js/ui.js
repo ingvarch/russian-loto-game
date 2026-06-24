@@ -206,10 +206,17 @@ function renderCells() {
 }
 
 const LOG_VISIBLE = 5;
+// How many balls may be drawn after an event before its rollback locks. The
+// undo is a misclick guard, not a free rewind -- once the game has moved on a
+// few draws, the resolution is final and the row greys out.
+const REOPEN_WINDOW = 5;
 const eventKey = (e) => e.cid + ":" + e.level + ":" + e.callCount;
-// Rebuild the log only when the event list actually changed, so unrelated
-// state pushes (a called number, an SSE heartbeat) don't reflow and flicker
-// the list. Only rows whose key is new since the last build animate in.
+const isReopenable = (e, calledCount) =>
+  logic.isEventReopenable(current, e, calledCount, REOPEN_WINDOW);
+// Rebuild the log only when something visible changed, so unrelated state
+// pushes (an SSE heartbeat) don't reflow and flicker the list. The signature
+// folds in each row's reopenable flag so the button vanishes on the exact draw
+// that closes its window. Only rows whose key is new since the last build animate.
 let lastLogSig = null;
 let prevLogKeys = new Set();
 
@@ -218,7 +225,10 @@ function renderLog() {
   document.getElementById("card-count").textContent = active().length + " карт";
 
   const events = current.events;
-  const sig = events.map((e) => eventKey(e) + (e.status || "")).join("|");
+  const calledCount = current.called.length;
+  const sig = events
+    .map((e) => eventKey(e) + (e.status || "") + (isReopenable(e, calledCount) ? "r" : "l"))
+    .join("|");
   if (sig === lastLogSig) return;
   lastLogSig = sig;
 
@@ -248,7 +258,7 @@ function renderLog() {
       '<span class="seq">#' + String(e.seq).padStart(3, "0") + '</span>' +
       '<span class="level">' + levelText + suffix + '</span>';
     row.addEventListener("click", () => openSheet(e.cid));
-    if (status === "confirmed" || status === "absent") {
+    if (isReopenable(e, calledCount)) {
       const reopenBtn = document.createElement("button");
       reopenBtn.type = "button";
       reopenBtn.className = "log-reopen";
@@ -259,6 +269,8 @@ function renderLog() {
         reopenEvent(e);
       });
       row.appendChild(reopenBtn);
+    } else if (status === "confirmed" || status === "absent") {
+      row.classList.add("locked");
     }
     logEl.appendChild(row);
   });

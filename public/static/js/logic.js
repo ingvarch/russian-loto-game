@@ -86,6 +86,34 @@ export function closeCountsByLevel(cards, called) {
   return counts;
 }
 
+// Whether a resolved event can still be rolled back. The undo is a misclick
+// guard, not a free rewind: it stays open only while at most `window` balls
+// have been drawn since the event crossed (callCount). Older events lock.
+// Legacy events without a callCount can't be aged, so they stay reopenable.
+export function canReopenEvent(event, calledCount, window) {
+  if (event.callCount == null) return true;
+  return calledCount - event.callCount <= window;
+}
+
+// Whether the log's rollback button should appear for an event. Combines the
+// ball-count window with a guard against pointless undos: once a level is
+// decided, only the winning crossing (earliest callCount) is worth reopening.
+// Trailing auto-confirmed crossings on that level didn't win, so reopening
+// them just blocks the game -- they lock immediately. Absent events are judged
+// purely by their own age, since reopening one can still promote it to winner.
+export function isEventReopenable(state, event, calledCount, window) {
+  if (event.status !== "confirmed" && event.status !== "absent") return false;
+  if (!canReopenEvent(event, calledCount, window)) return false;
+  if (event.status === "confirmed") {
+    const confirmed = (state.events || []).filter(
+      (e) => e.level === event.level && (e.status === undefined || e.status === "confirmed"),
+    );
+    const minCall = Math.min(...confirmed.map((e) => (e.callCount == null ? Infinity : e.callCount)));
+    if ((event.callCount == null ? Infinity : event.callCount) > minCall) return false;
+  }
+  return true;
+}
+
 // Cards one call away from reaching `level`: already at level-1 lines closed
 // and holding an unclosed 4/5 row. Level 1 -> cards close to their first line,
 // level 2 -> one line down and 4/5 on a second, level 3 -> two down and 4/5
