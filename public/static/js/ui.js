@@ -190,6 +190,18 @@ function renderLog() {
       '<span class="seq">#' + String(e.seq).padStart(3, "0") + '</span>' +
       '<span class="level">' + levelText + suffix + '</span>';
     row.addEventListener("click", () => openSheet(e.cid));
+    if (status === "confirmed" || status === "absent") {
+      const reopenBtn = document.createElement("button");
+      reopenBtn.type = "button";
+      reopenBtn.className = "log-reopen";
+      reopenBtn.textContent = "↺";
+      reopenBtn.title = "Вернуть к подтверждению";
+      reopenBtn.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        reopenEvent(e);
+      });
+      row.appendChild(reopenBtn);
+    }
     logEl.appendChild(row);
   }
 }
@@ -583,6 +595,15 @@ function maybeShowConfirmation() {
 
   modal.classList.add("open");
   grid.classList.add("blocked");
+}
+
+function reopenEvent(event) {
+  state.applyReopenEvent(current, {
+    cid: event.cid, level: event.level, callCount: event.callCount,
+  });
+  persist();
+  render();
+  maybeShowConfirmation();
 }
 
 function resolvePendingEvent(event, resolution) {

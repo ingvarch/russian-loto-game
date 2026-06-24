@@ -452,6 +452,18 @@ header {
   text-decoration: line-through;
   text-decoration-thickness: 1px;
 }
+.log-reopen {
+  flex: none;
+  width: 32px; height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-dim);
+  font-size: 16px; line-height: 1;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.log-reopen:active { background: var(--border); color: var(--text); }
 
 .sheet-backdrop {
   position: fixed; inset: 0;

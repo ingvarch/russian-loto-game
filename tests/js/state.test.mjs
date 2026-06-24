@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 
 import {
   applyCallNumber,
+  applyReopenEvent,
   applyResolveEvent,
   applyResolveTiebreak,
   freshState,
@@ -114,6 +115,69 @@ test("applyResolveEvent: confirming level 2 does not auto-confirm levels 1 or 3"
   s.events = [{ cid: "aaa", seq: 1, level: 2, callCount: 10, status: "pending" }];
   applyResolveEvent(s, { cid: "aaa", level: 2, callCount: 10 }, "confirmed");
   assert.deepEqual(s.levelAutoConfirm, { 1: false, 2: true, 3: false });
+});
+
+
+// ---- applyReopenEvent: revert a resolved event back to pending ----------
+
+test("applyReopenEvent: confirmed event -> pending", () => {
+  const s = freshState();
+  s.called = [1, 2, 3, 4, 5];
+  recompute(s, [cardA], "10:00");
+  const ev = s.events[0];
+  applyResolveEvent(s, { cid: ev.cid, level: ev.level, callCount: ev.callCount }, "confirmed");
+  applyReopenEvent(s, { cid: ev.cid, level: ev.level, callCount: ev.callCount });
+  assert.equal(s.events[0].status, "pending");
+});
+
+test("applyReopenEvent: absent event -> pending", () => {
+  const s = freshState();
+  s.called = [1, 2, 3, 4, 5];
+  recompute(s, [cardA], "10:00");
+  const ev = s.events[0];
+  applyResolveEvent(s, { cid: ev.cid, level: ev.level, callCount: ev.callCount }, "absent");
+  applyReopenEvent(s, { cid: ev.cid, level: ev.level, callCount: ev.callCount });
+  assert.equal(s.events[0].status, "pending");
+});
+
+test("applyReopenEvent: reopening the only confirmed event at a level clears levelAutoConfirm", () => {
+  const s = freshState();
+  s.called = [1, 2, 3, 4, 5];
+  recompute(s, [cardA], "10:00");
+  const ev = s.events[0];
+  applyResolveEvent(s, { cid: ev.cid, level: ev.level, callCount: ev.callCount }, "confirmed");
+  applyReopenEvent(s, { cid: ev.cid, level: ev.level, callCount: ev.callCount });
+  assert.equal(s.levelAutoConfirm[1], false);
+});
+
+test("applyReopenEvent: another confirmed event at the level keeps levelAutoConfirm true", () => {
+  const s = freshState();
+  // Two confirmed level-1 events; reopen one, the other still holds the level.
+  s.events = [
+    { cid: "aaa", seq: 1, level: 1, callCount: 5, status: "confirmed" },
+    { cid: "bbb", seq: 2, level: 1, callCount: 5, status: "confirmed" },
+  ];
+  s.levelAutoConfirm = { 1: true, 2: false, 3: false };
+  applyReopenEvent(s, { cid: "aaa", level: 1, callCount: 5 });
+  assert.equal(s.levelAutoConfirm[1], true);
+});
+
+test("applyReopenEvent: only the addressed event flips", () => {
+  const s = freshState();
+  s.events = [
+    { cid: "aaa", seq: 1, level: 1, callCount: 5, status: "absent" },
+    { cid: "bbb", seq: 2, level: 1, callCount: 5, status: "absent" },
+  ];
+  applyReopenEvent(s, { cid: "aaa", level: 1, callCount: 5 });
+  assert.equal(s.events[0].status, "pending");
+  assert.equal(s.events[1].status, "absent");
+});
+
+test("applyReopenEvent: pending event is left untouched (no-op)", () => {
+  const s = freshState();
+  s.events = [{ cid: "aaa", seq: 1, level: 1, callCount: 5, status: "pending" }];
+  applyReopenEvent(s, { cid: "aaa", level: 1, callCount: 5 });
+  assert.equal(s.events[0].status, "pending");
 });
 
 

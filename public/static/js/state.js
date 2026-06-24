@@ -213,6 +213,26 @@ export function applyResolveEvent(state, { cid, level, callCount }, resolution) 
   return { state };
 }
 
+// Revert a resolved event (confirmed or absent) back to "pending" so the
+// admin can re-decide -- e.g. marked a card absent, then a player claims it.
+// Addressed by the same natural key as applyResolveEvent. After flipping,
+// levelAutoConfirm[level] is recomputed from the remaining events: it stays
+// true only while some other confirmed event still holds the level.
+export function applyReopenEvent(state, { cid, level, callCount }) {
+  for (const e of state.events || []) {
+    if (e.cid === cid && e.level === level && e.callCount === callCount &&
+        (e.status === "confirmed" || e.status === "absent")) {
+      e.status = "pending";
+      break;
+    }
+  }
+  if (!state.levelAutoConfirm) state.levelAutoConfirm = { 1: false, 2: false, 3: false };
+  state.levelAutoConfirm[level] = (state.events || []).some(
+    (e) => e.level === level && e.status === "confirmed",
+  );
+  return { state };
+}
+
 // Record the host's choice when multiple cards tied a level with split=false.
 // Key is "<level>:<callCount>", value is the winning card's cid. resolveLevel
 // consults this map to promote exactly that card to sole winner.
