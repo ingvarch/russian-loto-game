@@ -589,6 +589,18 @@ body.theme-light .current-ball.empty {
   line-height: 1;
 }
 
+.music-emoji {
+  font-size: clamp(3rem, 8vw, 6rem);
+  line-height: 1;
+  margin-bottom: 28px;
+  animation: musicPulse 1.6s ease-in-out infinite;
+}
+
+@keyframes musicPulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.12); }
+}
+
 @keyframes winFade {
   from { opacity: 0; }
   to   { opacity: 1; }

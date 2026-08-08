@@ -388,6 +388,7 @@ header {
 .modal.modal-wide { max-width: 400px; }
 .modal-form { display: flex; flex-direction: column; gap: 14px; margin: 10px 0 18px; }
 .form-row { display: flex; flex-direction: column; gap: 6px; }
+.form-row.hidden { display: none; }
 .form-row label {
   font-size: 12px; font-weight: 600;
   text-transform: uppercase; letter-spacing: 0.5px;
@@ -647,6 +648,11 @@ header {
   color: var(--text);
   line-height: 1;
   margin-bottom: 6px;
+}
+.music-emoji {
+  font-size: 48px;
+  line-height: 1;
+  margin-bottom: 12px;
 }
 .win-cid {
   font-family: ui-monospace, "SF Mono", monospace;

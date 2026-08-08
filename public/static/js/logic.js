@@ -365,3 +365,13 @@ export function computePayouts(state, cards) {
     level3: p3,
   };
 }
+
+// Musical pause: configured at new-game time as { number, done }. The pause
+// is "active" (overlays shown, host must press continue) from the moment the
+// number is called until the host dismisses it. Uncalling the number before
+// the dismiss hides it again; `done` keeps it from ever re-firing.
+export function musicPauseActive(state) {
+  const mp = state.musicPause;
+  if (!mp || mp.done) return false;
+  return (state.called || []).includes(mp.number);
+}

@@ -158,6 +158,19 @@
         </div>
       </label>
 
+      <label class="split-row">
+        <input type="checkbox" id="ng-music">
+        <div>
+          <div class="split-label">Музыкальная пауза</div>
+          <div class="split-hint">Пауза сработает, когда выпадет выбранное число.</div>
+        </div>
+      </label>
+
+      <div class="form-row hidden" id="ng-music-num-row">
+        <label>Число паузы (1–90)</label>
+        <input type="number" id="ng-music-num" min="1" max="90" step="1" inputmode="numeric">
+      </div>
+
       <div class="form-row">
         <label>Карты в игре</label>
         <input type="text" id="ng-cards" placeholder="все" inputmode="text"
@@ -222,6 +235,16 @@
     <div class="win-actions">
       <button class="btn-continue" id="win-continue-btn">Продолжить игру</button>
       <button class="btn-new-game" id="win-new-game-btn">Новая игра</button>
+    </div>
+  </div>
+</div>
+
+<div class="win-backdrop" id="music-backdrop">
+  <div class="win-modal">
+    <div class="music-emoji">&#127925;&#128266;&#127926;</div>
+    <div class="win-title">Музыкальная пауза!</div>
+    <div class="win-actions">
+      <button class="btn-continue" id="music-continue-btn">Продолжить</button>
     </div>
   </div>
 </div>

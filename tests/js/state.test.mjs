@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 
 import {
   applyCallNumber,
+  applyMusicPauseContinue,
   applyReopenEvent,
   applyResolveEvent,
   applyResolveTiebreak,
@@ -54,6 +55,28 @@ test("freshState: includes empty tiebreakWinners object", () => {
 test("freshState: split defaults to false (host picks tie winners)", () => {
   const s = freshState();
   assert.equal(s.split, false);
+});
+
+test("freshState: musicPause defaults to null", () => {
+  const s = freshState();
+  assert.equal(s.musicPause, null);
+});
+
+test("freshState: musicPause override is kept", () => {
+  const s = freshState({ musicPause: { number: 42, done: false } });
+  assert.deepEqual(s.musicPause, { number: 42, done: false });
+});
+
+test("applyMusicPauseContinue: marks the pause done", () => {
+  const s = freshState({ musicPause: { number: 42, done: false } });
+  applyMusicPauseContinue(s);
+  assert.deepEqual(s.musicPause, { number: 42, done: true });
+});
+
+test("applyMusicPauseContinue: no-op when musicPause is null", () => {
+  const s = freshState();
+  applyMusicPauseContinue(s);
+  assert.equal(s.musicPause, null);
 });
 
 

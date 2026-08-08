@@ -9,6 +9,8 @@
 //   jackpot: int                               -- 0 = feature disabled
 //   percentages: [p1, p2, p3]                  -- integers, sum = 100
 //   split: bool                                -- on ties: split or host picks
+//   musicPause: { number: 1..90, done } | null -- pause overlay, fires once
+//                                                 when `number` is called
 //   cardRange: [lo, hi] | null                 -- active card-seq filter
 //   levelAutoConfirm: {1: bool, 2: bool, 3: bool}
 //                                              -- once the admin confirms ANY
@@ -62,6 +64,7 @@ export function freshState(overrides) {
     jackpot: 0,
     percentages: [10, 25, 65],
     split: false,
+    musicPause: null,
     cardRange: null,
     levelAutoConfirm: { 1: false, 2: false, 3: false },
     tiebreakWinners: {},
@@ -79,6 +82,7 @@ export function loadState() {
     if (parsed.jackpot === undefined) parsed.jackpot = 0;
     if (!Array.isArray(parsed.percentages)) parsed.percentages = [10, 25, 65];
     if (parsed.split === undefined) parsed.split = true;
+    if (parsed.musicPause === undefined) parsed.musicPause = null;
     if (parsed.cardRange === undefined) parsed.cardRange = null;
     if (!parsed.levelAutoConfirm || typeof parsed.levelAutoConfirm !== "object") {
       // For old saves that pre-date the auto-confirm flow: if the admin has
@@ -230,6 +234,13 @@ export function applyReopenEvent(state, { cid, level, callCount }) {
   state.levelAutoConfirm[level] = (state.events || []).some(
     (e) => e.level === level && e.status === "confirmed",
   );
+  return { state };
+}
+
+// Dismiss the musical pause overlay. `done` is permanent: the pause fires at
+// most once per game, even if the number is uncalled and called again.
+export function applyMusicPauseContinue(state) {
+  if (state.musicPause) state.musicPause.done = true;
   return { state };
 }
 

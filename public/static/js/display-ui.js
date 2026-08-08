@@ -20,6 +20,7 @@ const currentNumEl = document.getElementById("current-num");
 const recentListEl = document.getElementById("recent-list");
 const winOverlayEl = document.getElementById("win-overlay");
 const winSeqEl = document.getElementById("win-seq");
+const musicOverlayEl = document.getElementById("music-overlay");
 
 if (!SHOW_EXTRAS) document.body.classList.add("hide-extras");
 
@@ -146,6 +147,16 @@ function render(gameState) {
 
   renderWinners(gameState, cards);
   renderWinOverlay(gameState, cards);
+  renderMusicPause(gameState);
+}
+
+// Fullscreen pause overlay: opens when the configured number is called,
+// closes when the host presses continue in the admin (state.musicPause.done).
+function renderMusicPause(gameState) {
+  if (!musicOverlayEl) return;
+  const on = logic.musicPauseActive(gameState);
+  musicOverlayEl.classList.toggle("open", on);
+  musicOverlayEl.setAttribute("aria-hidden", on ? "false" : "true");
 }
 
 // Fullscreen festive overlay shown once полное лото is confirmed by the host.

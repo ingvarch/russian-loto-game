@@ -69,6 +69,7 @@ export function init({ cards, initialState, onSave, autoOpenNewGame }) {
   wireLogToggle();
   wireCloseHelp();
   wireWinOverlay();
+  wireMusicPause();
   wireBottomSheet();
 
   // Reconcile stored state on load: cardLevel may be stale if CARDS changed
@@ -161,6 +162,7 @@ function render() {
   renderLog();
   maybeShowConfirmation();
   maybeShowTiebreak();
+  maybeShowMusicPause();
 }
 
 // Mirror of the /display winners panel: each level row shows once the host
@@ -467,6 +469,9 @@ function openNewGameModal() {
   document.getElementById("ng-pct2").value = (current.percentages && current.percentages[1]) || 25;
   document.getElementById("ng-pct3").value = (current.percentages && current.percentages[2]) || 65;
   document.getElementById("ng-split").checked = current.split === true;
+  document.getElementById("ng-music").checked = !!current.musicPause;
+  document.getElementById("ng-music-num").value = current.musicPause ? current.musicPause.number : "";
+  syncMusicRowVisibility();
   document.getElementById("ng-error").textContent = "";
   const cardsInput = document.getElementById("ng-cards");
   if (current.cardRange) {
@@ -496,8 +501,21 @@ function readNewGameForm() {
   const pct2 = parseInt(document.getElementById("ng-pct2").value, 10);
   const pct3 = parseInt(document.getElementById("ng-pct3").value, 10);
   const split = document.getElementById("ng-split").checked;
+  const musicOn = document.getElementById("ng-music").checked;
+  const musicNum = parseInt(document.getElementById("ng-music-num").value, 10);
   const cardsRaw = document.getElementById("ng-cards").value.trim();
-  return { jackpot, percentages: [pct1, pct2, pct3], split, cardRange: cardsRaw || null };
+  return {
+    jackpot,
+    percentages: [pct1, pct2, pct3],
+    split,
+    musicPause: musicOn ? { number: musicNum, done: false } : null,
+    cardRange: cardsRaw || null,
+  };
+}
+
+function syncMusicRowVisibility() {
+  const on = document.getElementById("ng-music").checked;
+  document.getElementById("ng-music-num-row").classList.toggle("hidden", !on);
 }
 
 function validateNewGameForm() {
@@ -516,6 +534,13 @@ function validateNewGameForm() {
   if (sum !== 100) {
     err.textContent = "Сумма процентов должна быть ровно 100 (сейчас " + sum + ").";
     return null;
+  }
+  if (form.musicPause) {
+    const n = form.musicPause.number;
+    if (isNaN(n) || n < 1 || n > 90) {
+      err.textContent = "Число музыкальной паузы — от 1 до 90.";
+      return null;
+    }
   }
   if (form.cardRange) {
       const raw = form.cardRange;
@@ -619,6 +644,11 @@ function wireNewGameModal() {
       applyPreset(btn);
     });
   });
+  document.getElementById("ng-music").addEventListener("change", () => {
+    syncMusicRowVisibility();
+    validateNewGameForm();
+  });
+  document.getElementById("ng-music-num").addEventListener("input", () => validateNewGameForm());
 
   const newGameModalEl = document.getElementById("new-game-modal");
   newGameModalEl.querySelector('[data-action="cancel"]').addEventListener("click", closeNewGameModal);
@@ -881,6 +911,23 @@ function showWin(card) {
 
 function closeWin() {
   document.getElementById("win-backdrop").classList.remove("open");
+}
+
+// ---- Musical pause -------------------------------------------------------
+//
+// Driven purely by state so it opens on every admin tab via the shared SSE
+// stream and closes everywhere once any admin presses continue.
+
+function maybeShowMusicPause() {
+  document.getElementById("music-backdrop").classList.toggle("open", logic.musicPauseActive(current));
+}
+
+function wireMusicPause() {
+  document.getElementById("music-continue-btn").addEventListener("click", () => {
+    state.applyMusicPauseContinue(current);
+    persist();
+    render();
+  });
 }
 
 function wireWinOverlay() {

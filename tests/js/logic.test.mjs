@@ -21,6 +21,7 @@ import {
   hasPendingEvents,
   isCardClose,
   levelOf,
+  musicPauseActive,
   nextPendingBatch,
   nextTargetLevel,
   nextTiebreakBatch,
@@ -813,4 +814,31 @@ test("recentCalled does not mutate the input array", () => {
   const copy = src.slice();
   recentCalled(src, 2);
   assert.deepEqual(src, copy);
+});
+
+
+// ---- Musical pause -------------------------------------------------------
+
+test("musicPauseActive: false when musicPause is not configured", () => {
+  assert.equal(musicPauseActive({ called: [1, 2, 3], musicPause: null }), false);
+});
+
+test("musicPauseActive: false until the configured number is called", () => {
+  const state = { called: [1, 2, 3], musicPause: { number: 42, done: false } };
+  assert.equal(musicPauseActive(state), false);
+});
+
+test("musicPauseActive: true once the number is called and not yet done", () => {
+  const state = { called: [1, 42, 3], musicPause: { number: 42, done: false } };
+  assert.equal(musicPauseActive(state), true);
+});
+
+test("musicPauseActive: false after the host pressed continue", () => {
+  const state = { called: [1, 42, 3], musicPause: { number: 42, done: true } };
+  assert.equal(musicPauseActive(state), false);
+});
+
+test("musicPauseActive: false again if the number is uncalled before continue", () => {
+  const state = { called: [1, 3], musicPause: { number: 42, done: false } };
+  assert.equal(musicPauseActive(state), false);
 });

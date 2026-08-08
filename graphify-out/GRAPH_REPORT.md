@@ -1,16 +1,16 @@
 # Graph Report - russian-loto-game  (2026-08-08)
 
 ## Corpus Check
-- 37 files · ~33,170 words
+- 37 files · ~33,815 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 320 nodes · 467 edges · 20 communities
+- 327 nodes · 480 edges · 20 communities
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `e7e6ec80`
+- Built from commit: `101992f0`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -32,14 +32,14 @@
 ## God Nodes (most connected - your core abstractions)
 1. `compilerOptions` - 21 edges
 2. `GameRoom` - 17 edges
-3. `render()` - 14 edges
-4. `active()` - 13 edges
-5. `init()` - 13 edges
+3. `render()` - 15 edges
+4. `init()` - 14 edges
+5. `active()` - 13 edges
 6. `scripts` - 10 edges
 7. `Non-negotiable principles` - 8 edges
 8. `resolveLevel()` - 7 edges
 9. `Env` - 7 edges
-10. `persist()` - 6 edges
+10. `render()` - 6 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `ProvidedEnv` --inherits--> `Env`  [EXTRACTED]
@@ -59,8 +59,8 @@
 ## Communities (20 total, 0 thin omitted)
 
 ### Community 0 - "Community 0"
-Cohesion: 0.08
-Nodes (50): active(), applyPreset(), applyRemoteState(), askUncall(), buildGrid(), calledSet(), CARDS, counterEl (+42 more)
+Cohesion: 0.07
+Nodes (53): active(), applyPreset(), applyRemoteState(), askUncall(), buildGrid(), calledSet(), CARDS, counterEl (+45 more)
 
 ### Community 1 - "Community 1"
 Cohesion: 0.07
@@ -76,11 +76,11 @@ Nodes (27): dependencies, qrcode-svg, description, devDependencies, @cloudflare/
 
 ### Community 4 - "Community 4"
 Cohesion: 0.09
-Nodes (21): buildGrid(), CARDS, counterEl, currentBallEl, currentNumEl, formatAmount(), gridEl, init() (+13 more)
+Nodes (23): buildGrid(), CARDS, counterEl, currentBallEl, currentNumEl, formatAmount(), gridEl, init() (+15 more)
 
 ### Community 5 - "Community 5"
-Cohesion: 0.16
-Nodes (25): activeCards(), calledSet(), canReopenEvent(), closeCards(), closeCardsForLevel(), closeCountsByLevel(), computeLevelPayout(), computePayouts() (+17 more)
+Cohesion: 0.15
+Nodes (26): activeCards(), calledSet(), canReopenEvent(), closeCards(), closeCardsForLevel(), closeCountsByLevel(), computeLevelPayout(), computePayouts() (+18 more)
 
 ### Community 6 - "Community 6"
 Cohesion: 0.12
@@ -91,8 +91,8 @@ Cohesion: 0.08
 Nodes (23): compilerOptions, esModuleInterop, exactOptionalPropertyTypes, forceConsistentCasingInFileNames, isolatedModules, lib, module, moduleResolution (+15 more)
 
 ### Community 8 - "Community 8"
-Cohesion: 0.21
-Nodes (13): applyCallNumber(), applyReopenEvent(), applyResolveEvent(), applyResolveTiebreak(), applyUncallNumber(), currentStorageKey(), freshState(), loadState() (+5 more)
+Cohesion: 0.20
+Nodes (14): applyCallNumber(), applyMusicPauseContinue(), applyReopenEvent(), applyResolveEvent(), applyResolveTiebreak(), applyUncallNumber(), currentStorageKey(), freshState() (+6 more)
 
 ### Community 9 - "Community 9"
 Cohesion: 0.18
@@ -111,7 +111,7 @@ Cohesion: 0.29
 Nodes (6): compilerOptions, noEmit, types, exclude, extends, include
 
 ## Knowledge Gaps
-- **122 isolated node(s):** `name`, `version`, `private`, `description`, `type` (+117 more)
+- **123 isolated node(s):** `name`, `version`, `private`, `description`, `type` (+118 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 
 ## Suggested Questions
@@ -120,9 +120,9 @@ _Questions this graph is uniquely positioned to answer:_
 - **Why does `GameRoom` connect `Community 6` to `Community 2`?**
   _High betweenness centrality (0.011) - this node is a cross-community bridge._
 - **What connects `name`, `version`, `private` to the rest of the system?**
-  _122 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _123 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
-  _Cohesion score 0.07857142857142857 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.07422559906487435 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**
   _Cohesion score 0.06666666666666667 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
@@ -130,4 +130,4 @@ _Questions this graph is uniquely positioned to answer:_
 - **Should `Community 3` be split into smaller, more focused modules?**
   _Cohesion score 0.07142857142857142 - nodes in this community are weakly interconnected._
 - **Should `Community 4` be split into smaller, more focused modules?**
-  _Cohesion score 0.08994708994708994 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.08505747126436781 - nodes in this community are weakly interconnected._
