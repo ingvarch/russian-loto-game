@@ -61,7 +61,7 @@ export function freshState(overrides) {
     cardLevel: {},
     jackpot: 0,
     percentages: [10, 25, 65],
-    split: true,
+    split: false,
     cardRange: null,
     levelAutoConfirm: { 1: false, 2: false, 3: false },
     tiebreakWinners: {},

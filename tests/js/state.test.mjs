@@ -51,6 +51,11 @@ test("freshState: includes empty tiebreakWinners object", () => {
   assert.deepEqual(s.tiebreakWinners, {});
 });
 
+test("freshState: split defaults to false (host picks tie winners)", () => {
+  const s = freshState();
+  assert.equal(s.split, false);
+});
+
 
 // ---- recompute: pending vs auto-confirm ---------------------------------
 

@@ -466,7 +466,7 @@ function openNewGameModal() {
   document.getElementById("ng-pct1").value = (current.percentages && current.percentages[0]) || 10;
   document.getElementById("ng-pct2").value = (current.percentages && current.percentages[1]) || 25;
   document.getElementById("ng-pct3").value = (current.percentages && current.percentages[2]) || 65;
-  document.getElementById("ng-split").checked = current.split !== false;
+  document.getElementById("ng-split").checked = current.split === true;
   document.getElementById("ng-error").textContent = "";
   const cardsInput = document.getElementById("ng-cards");
   if (current.cardRange) {
