@@ -62,6 +62,16 @@ test("freshState: musicPause defaults to null", () => {
   assert.equal(s.musicPause, null);
 });
 
+test("freshState: easterEggs default to enabled", () => {
+  const s = freshState();
+  assert.equal(s.easterEggs, true);
+});
+
+test("freshState: easterEggs override is kept", () => {
+  const s = freshState({ easterEggs: false });
+  assert.equal(s.easterEggs, false);
+});
+
 test("freshState: musicPause override is kept", () => {
   const s = freshState({ musicPause: { number: 42, done: false } });
   assert.deepEqual(s.musicPause, { number: 42, done: false });

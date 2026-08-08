@@ -589,6 +589,31 @@ body.theme-light .current-ball.empty {
   line-height: 1;
 }
 
+.egg-layer {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 150; /* under win/music overlays (200) */
+}
+
+.egg-toast {
+  max-width: 60vmin;
+  max-height: 60vmin;
+  filter: drop-shadow(0 20px 60px rgba(0, 0, 0, 0.6));
+  animation: eggPop 4s ease-in-out forwards;
+}
+
+@keyframes eggPop {
+  0%   { opacity: 0; transform: scale(0.5); }
+  8%   { opacity: 1; transform: scale(1.06); }
+  12%  { transform: scale(1); }
+  85%  { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.04); }
+}
+
 .music-emoji {
   font-size: clamp(3rem, 8vw, 6rem);
   line-height: 1;

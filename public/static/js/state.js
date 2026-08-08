@@ -11,6 +11,8 @@
 //   split: bool                                -- on ties: split or host picks
 //   musicPause: { number: 1..90, done } | null -- pause overlay, fires once
 //                                                 when `number` is called
+//   easterEggs: bool                           -- meme toasts on the display
+//                                                 for special numbers
 //   cardRange: [lo, hi] | null                 -- active card-seq filter
 //   levelAutoConfirm: {1: bool, 2: bool, 3: bool}
 //                                              -- once the admin confirms ANY
@@ -65,6 +67,7 @@ export function freshState(overrides) {
     percentages: [10, 25, 65],
     split: false,
     musicPause: null,
+    easterEggs: true,
     cardRange: null,
     levelAutoConfirm: { 1: false, 2: false, 3: false },
     tiebreakWinners: {},
@@ -83,6 +86,7 @@ export function loadState() {
     if (!Array.isArray(parsed.percentages)) parsed.percentages = [10, 25, 65];
     if (parsed.split === undefined) parsed.split = true;
     if (parsed.musicPause === undefined) parsed.musicPause = null;
+    if (parsed.easterEggs === undefined) parsed.easterEggs = true;
     if (parsed.cardRange === undefined) parsed.cardRange = null;
     if (!parsed.levelAutoConfirm || typeof parsed.levelAutoConfirm !== "object") {
       // For old saves that pre-date the auto-confirm flow: if the admin has

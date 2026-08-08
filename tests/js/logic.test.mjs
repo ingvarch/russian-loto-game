@@ -21,6 +21,7 @@ import {
   hasPendingEvents,
   isCardClose,
   levelOf,
+  liveEasterEgg,
   musicPauseActive,
   nextPendingBatch,
   nextTargetLevel,
@@ -841,4 +842,33 @@ test("musicPauseActive: false after the host pressed continue", () => {
 test("musicPauseActive: false again if the number is uncalled before continue", () => {
   const state = { called: [1, 3], musicPause: { number: 42, done: false } };
   assert.equal(musicPauseActive(state), false);
+});
+
+
+// ---- Easter eggs ---------------------------------------------------------
+
+const EGGS = [18, 67, 69];
+
+test("liveEasterEgg: fires when exactly one new number appears and it is an egg", () => {
+  assert.equal(liveEasterEgg([1, 2], [1, 2, 69], EGGS), 69);
+});
+
+test("liveEasterEgg: null when the single new number is not an egg", () => {
+  assert.equal(liveEasterEgg([1, 2], [1, 2, 30], EGGS), null);
+});
+
+test("liveEasterEgg: null when nothing new was called", () => {
+  assert.equal(liveEasterEgg([1, 2], [1, 2], EGGS), null);
+});
+
+test("liveEasterEgg: null on catch-up (several new numbers at once)", () => {
+  assert.equal(liveEasterEgg([], [1, 69, 30], EGGS), null);
+});
+
+test("liveEasterEgg: null on uncall", () => {
+  assert.equal(liveEasterEgg([1, 69], [1], EGGS), null);
+});
+
+test("liveEasterEgg: fires again when an egg is re-called after an uncall", () => {
+  assert.equal(liveEasterEgg([1, 2], [1, 2, 67], EGGS), 67);
 });

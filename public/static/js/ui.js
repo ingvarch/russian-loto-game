@@ -472,6 +472,7 @@ function openNewGameModal() {
   document.getElementById("ng-music").checked = !!current.musicPause;
   document.getElementById("ng-music-num").value = current.musicPause ? current.musicPause.number : "";
   syncMusicRowVisibility();
+  document.getElementById("ng-eggs").checked = current.easterEggs !== false;
   document.getElementById("ng-error").textContent = "";
   const cardsInput = document.getElementById("ng-cards");
   if (current.cardRange) {
@@ -509,6 +510,7 @@ function readNewGameForm() {
     percentages: [pct1, pct2, pct3],
     split,
     musicPause: musicOn ? { number: musicNum, done: false } : null,
+    easterEggs: document.getElementById("ng-eggs").checked,
     cardRange: cardsRaw || null,
   };
 }

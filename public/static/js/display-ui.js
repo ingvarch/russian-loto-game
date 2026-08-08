@@ -21,6 +21,15 @@ const recentListEl = document.getElementById("recent-list");
 const winOverlayEl = document.getElementById("win-overlay");
 const winSeqEl = document.getElementById("win-seq");
 const musicOverlayEl = document.getElementById("music-overlay");
+const eggLayerEl = document.getElementById("egg-layer");
+
+// Meme numbers -> image files under /static/img/eggs/. Adding an egg is one
+// line here plus the image file; hosts toggle the whole feature per game via
+// the admin's "Пасхалки" checkbox (state.easterEggs).
+const EASTER_EGGS = { 18: "18.png", 67: "67.png", 69: "69.png" };
+const EGG_NUMBERS = Object.keys(EASTER_EGGS).map(Number);
+
+let prevCalled = [];
 
 if (!SHOW_EXTRAS) document.body.classList.add("hide-extras");
 
@@ -148,6 +157,24 @@ function render(gameState) {
   renderWinners(gameState, cards);
   renderWinOverlay(gameState, cards);
   renderMusicPause(gameState);
+  renderEasterEgg(gameState);
+}
+
+// Non-blocking meme toast. liveEasterEgg fires only on a real single call,
+// so page loads and SSE reconnect catch-ups stay silent.
+function renderEasterEgg(gameState) {
+  const called = gameState.called || [];
+  const egg = logic.liveEasterEgg(prevCalled, called, EGG_NUMBERS);
+  prevCalled = called.slice();
+  if (egg === null || !eggLayerEl || gameState.easterEggs === false) return;
+  eggLayerEl.innerHTML = "";
+  const img = document.createElement("img");
+  img.className = "egg-toast";
+  img.src = "/static/img/eggs/" + EASTER_EGGS[egg];
+  img.alt = "";
+  img.onerror = () => img.remove();
+  img.addEventListener("animationend", () => img.remove());
+  eggLayerEl.appendChild(img);
 }
 
 // Fullscreen pause overlay: opens when the configured number is called,

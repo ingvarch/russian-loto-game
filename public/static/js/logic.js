@@ -375,3 +375,14 @@ export function musicPauseActive(state) {
   if (!mp || mp.done) return false;
   return (state.called || []).includes(mp.number);
 }
+
+// Easter egg trigger. A live call always adds exactly one number per state
+// push, so "exactly one new number" separates real calls from catch-up
+// renders (page load, SSE reconnect) which must stay silent. Uncalls remove
+// numbers and never fire. Returns the egg number or null.
+export function liveEasterEgg(prevCalled, called, eggNumbers) {
+  const prev = new Set(prevCalled || []);
+  const fresh = (called || []).filter((n) => !prev.has(n));
+  if (fresh.length !== 1) return null;
+  return eggNumbers.includes(fresh[0]) ? fresh[0] : null;
+}
