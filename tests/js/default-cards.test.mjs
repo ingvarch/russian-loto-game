@@ -46,3 +46,15 @@ test("registry-only fields are stripped (printed_at, formats, recovered)", () =>
     assert.equal(card.recovered, undefined);
   }
 });
+
+test("deck covers seq 1..150 with no gaps", () => {
+  assert.equal(DEFAULT_CARDS.length, 150);
+  DEFAULT_CARDS.forEach((card, i) => {
+    assert.equal(card.seq, i + 1, `gap at index ${i}`);
+  });
+});
+
+test("cids are unique", () => {
+  const cids = new Set(DEFAULT_CARDS.map((c) => c.cid));
+  assert.equal(cids.size, DEFAULT_CARDS.length);
+});
