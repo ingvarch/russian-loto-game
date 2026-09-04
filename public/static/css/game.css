@@ -353,9 +353,15 @@ header {
 .modal-backdrop {
   position: fixed; inset: 0;
   background: var(--modal-bg);
-  display: none; align-items: center; justify-content: center;
+  display: none; justify-content: center;
   z-index: 200;
+  /* Backdrop scrolls, not the modal: a modal taller than the phone
+   * viewport stays reachable instead of clipping past the URL bar. */
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 20px;
+  padding-top: max(20px, env(safe-area-inset-top));
+  padding-bottom: max(20px, env(safe-area-inset-bottom));
 }
 .modal-backdrop.open { display: flex; }
 .modal {
@@ -363,6 +369,7 @@ header {
   border-radius: 14px;
   padding: 20px;
   max-width: 320px; width: 100%;
+  margin: auto;
   box-shadow: var(--shadow);
 }
 .modal-title { font-size: 17px; font-weight: 600; margin: 0 0 8px; }

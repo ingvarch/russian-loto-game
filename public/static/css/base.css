@@ -48,5 +48,5 @@ html, body {
 }
 body {
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-  min-height: 100vh;
+  min-height: 100dvh;
 }
