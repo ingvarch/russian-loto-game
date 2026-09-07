@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1a1a1a">
+<title>Russian Loto -- Настройки</title>
+<script src="/static/js/theme-boot.js"></script>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/static/img/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Лото">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="stylesheet" href="/static/css/base.css">
+<link rel="stylesheet" href="/static/css/settings.css">
+</head>
+<body class="has-tabbar">
+
+<header class="settings-header">
+  <h1>Настройки</h1>
+</header>
+
+<main class="settings-main">
+
+  <section class="settings-section">
+    <div class="section-label">Тема</div>
+    <div class="segmented" id="theme-choice">
+      <button type="button" data-theme-value="system">Системная</button>
+      <button type="button" data-theme-value="light">Светлая</button>
+      <button type="button" data-theme-value="dark">Тёмная</button>
+    </div>
+    <p class="section-hint">
+      Табло остаётся тёмным на системной теме — на проекторе светлый фон
+      съедает бочонки. Светлую можно выбрать явно.
+    </p>
+  </section>
+
+  <section class="settings-section">
+    <div class="section-label">Экран и игра</div>
+    <div class="form-group">
+      <label class="group-row switch-row">
+        <span class="group-text">
+          <span class="row-title">Не гасить экран</span>
+          <span class="row-hint">Держит подсветку, пока страница открыта.</span>
+        </span>
+        <input type="checkbox" id="pref-keep-awake" class="switch">
+      </label>
+
+      <label class="group-row switch-row">
+        <span class="group-text">
+          <span class="row-title">Пасхалки</span>
+          <span class="row-hint">Мем-картинки на табло при особых числах.</span>
+        </span>
+        <input type="checkbox" id="pref-eggs" class="switch">
+      </label>
+    </div>
+    <p class="section-hint hidden" id="wake-lock-unsupported">
+      Этот браузер не умеет удерживать экран — настройка ни на что не влияет.
+    </p>
+    <p class="section-hint">
+      Пасхалки здесь задают значение по умолчанию для новой игры. Переключатель
+      в форме «Новая игра» пишет свой выбор обратно сюда.
+    </p>
+  </section>
+
+  <section class="settings-section">
+    <div class="section-label">Ссылки</div>
+    <div class="form-group">
+      <button type="button" class="group-row link-row" id="open-share">
+        <span class="group-text">
+          <span class="row-title">Ссылка и QR на табло</span>
+          <span class="row-hint">Показать залу или отправить второму ведущему.</span>
+        </span>
+        <span class="link-chevron" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 6l6 6-6 6"></path>
+          </svg>
+        </span>
+      </button>
+
+      <a class="group-row link-row" href="/admin" target="_blank" rel="noopener">
+        <span class="group-text">
+          <span class="row-title">Панель оператора</span>
+          <span class="row-hint">Список всех игр. Спросит пароль.</span>
+        </span>
+        <span class="link-chevron" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 4h6v6"></path>
+            <path d="M20 4 10 14"></path>
+            <path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"></path>
+          </svg>
+        </span>
+      </a>
+    </div>
+  </section>
+
+</main>
+
+<nav class="tabbar" aria-label="Разделы">
+  <a class="tab" href="./display">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="3" y="4" width="18" height="12.5" rx="2.5"></rect>
+      <path d="M9 20.5h6"></path>
+      <path d="M12 16.5v4"></path>
+    </svg>
+    <span>Табло</span>
+  </a>
+  <a class="tab" href="./">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M3 10.5 12 3l9 7.5"></path>
+      <path d="M5 9.5V20h14V9.5"></path>
+    </svg>
+    <span>Игра</span>
+  </a>
+  <a class="tab is-current" href="./settings" aria-current="page">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="3.2"></circle>
+      <path d="M12 2.8v2.4M12 18.8v2.4M4.5 12H2.1M21.9 12h-2.4M6.7 6.7 5 5M19 19l-1.7-1.7M6.7 17.3 5 19M19 5l-1.7 1.7"></path>
+    </svg>
+    <span>Настройки</span>
+  </a>
+</nav>
+
+<script type="module" src="/static/js/main-settings.js"></script>
+
+</body>
+</html>

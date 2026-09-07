@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1a1a1a">
 <title>Russian Loto -- Live Game</title>
+<script src="/static/js/theme-boot.js"></script>
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/static/img/icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -119,7 +120,7 @@
 
       <div class="form-row">
         <label>Пресет</label>
-        <div class="preset-buttons" id="ng-presets">
+        <div class="segmented" id="ng-presets">
           <button type="button" data-preset="classic" data-pct="10,25,65">Классика</button>
           <button type="button" data-preset="no-one" data-pct="0,30,70">Без 1-й линии</button>
         </div>
@@ -163,24 +164,24 @@
         <div class="form-group advanced-body">
           <label class="group-row switch-row">
             <span class="group-text">
-              <span class="split-label">Музыкальная пауза</span>
-              <span class="split-hint">Пауза сработает, когда выпадет выбранное число.</span>
+              <span class="row-title">Музыкальная пауза</span>
+              <span class="row-hint">Пауза сработает, когда выпадет выбранное число.</span>
             </span>
             <input type="checkbox" id="ng-music" class="switch">
           </label>
 
           <label class="group-row switch-row">
             <span class="group-text">
-              <span class="split-label">Делить поровну при ничьих</span>
-              <span class="split-hint">Если выключено — ведущий выбирает победителя вручную.</span>
+              <span class="row-title">Делить поровну при ничьих</span>
+              <span class="row-hint">Если выключено — ведущий выбирает победителя вручную.</span>
             </span>
             <input type="checkbox" id="ng-split" class="switch">
           </label>
 
           <label class="group-row switch-row">
             <span class="group-text">
-              <span class="split-label">Пасхалки</span>
-              <span class="split-hint">Мем-картинки на экране при особых числах.</span>
+              <span class="row-title">Пасхалки</span>
+              <span class="row-hint">Мем-картинки на экране при особых числах.</span>
             </span>
             <input type="checkbox" id="ng-eggs" class="switch">
           </label>
@@ -280,14 +281,6 @@
 </div>
 
 <nav class="tabbar" aria-label="Разделы">
-  <a class="tab is-current" href="./" aria-current="page">
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <path d="M3 10.5 12 3l9 7.5"></path>
-      <path d="M5 9.5V20h14V9.5"></path>
-    </svg>
-    <span>Игра</span>
-  </a>
   <a class="tab" href="./display">
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
          stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -296,6 +289,22 @@
       <path d="M12 16.5v4"></path>
     </svg>
     <span>Табло</span>
+  </a>
+  <a class="tab is-current" href="./" aria-current="page">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M3 10.5 12 3l9 7.5"></path>
+      <path d="M5 9.5V20h14V9.5"></path>
+    </svg>
+    <span>Игра</span>
+  </a>
+  <a class="tab" href="./settings">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="3.2"></circle>
+      <path d="M12 2.8v2.4M12 18.8v2.4M4.5 12H2.1M21.9 12h-2.4M6.7 6.7 5 5M19 19l-1.7-1.7M6.7 17.3 5 19M19 5l-1.7 1.7"></path>
+    </svg>
+    <span>Настройки</span>
   </a>
 </nav>
 

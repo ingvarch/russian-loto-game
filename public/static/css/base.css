@@ -20,8 +20,16 @@
   --shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
 }
 
+/* Theme resolution, in the order a browser applies it:
+ *   :root                       -- light is the base
+ *   prefers-color-scheme: dark  -- unless the reader asked for light
+ *   [data-theme="dark"]         -- an explicit choice always wins
+ *
+ * The attribute is stamped before first paint by theme-boot.js and rewritten
+ * by the settings screen. Absent attribute means "follow the system".
+ */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #000000;
     --surface: #1c1c1e;
     --text: #ffffff;
@@ -36,6 +44,21 @@
     --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   }
 }
+
+:root[data-theme="dark"] {
+  --bg: #000000;
+  --surface: #1c1c1e;
+  --text: #ffffff;
+  --text-dim: #98989d;
+  --border: #38383a;
+  --accent: #ff6b35;
+  --accent-text: #ffffff;
+  --level1: #7d7aff;
+  --level2: #d573ff;
+  --level3: #ff6058;
+  --modal-bg: rgba(0, 0, 0, 0.7);
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body {
@@ -179,4 +202,128 @@ body.has-tabbar { padding-bottom: calc(52px + env(safe-area-inset-bottom)); }
 @media (min-width: 900px) {
   .tabbar { display: none; }
   body.has-tabbar { padding-bottom: env(safe-area-inset-bottom); }
+}
+
+/* ---- Shared form atoms --------------------------------------------------
+ *
+ * The new-game form and the settings screen are the same vocabulary: rows
+ * grouped into one rounded card, a track-and-knob switch, a segmented
+ * control. They live here so neither page owns the other's styling.
+ */
+
+/* Grouped inset list: rows share one rounded container, split by hairlines.
+   Value sits at the trailing edge of its own row, label at the leading one. */
+.form-group {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.form-group.hidden { display: none; }
+
+/* Advanced settings: a native <details> so the collapse needs no JS and the
+   summary keeps keyboard and screen-reader behaviour for free. Summary and
+   body are drawn as one card, split by the summary's own bottom border. */
+.advanced > summary {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  font-size: 15px; font-weight: 500;
+  cursor: pointer; user-select: none;
+  list-style: none;
+}
+.advanced > summary::-webkit-details-marker { display: none; }
+.advanced-chevron { flex: none; color: var(--text-dim); transition: transform 0.2s; }
+.advanced[open] > summary { border-radius: 14px 14px 0 0; }
+.advanced[open] .advanced-chevron { transform: rotate(180deg); }
+.advanced[open] .advanced-body {
+  border-top: 0;
+  border-radius: 0 0 14px 14px;
+}
+.group-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 11px 14px;
+  background: var(--surface);
+}
+/* Only the switch rows act as one big hit target; input rows keep the
+   caret and let the value be selected. */
+.switch-row { cursor: pointer; user-select: none; }
+.group-row.hidden { display: none; }
+.group-row + .group-row { border-top: 1px solid var(--border); }
+.group-label { flex: 1; font-size: 15px; font-weight: 500; }
+.group-text { flex: 1; min-width: 0; }
+.group-row input[type="number"],
+.group-row input[type="text"] {
+  flex: 0 1 45%; min-width: 0;
+  background: transparent; border: none; padding: 0;
+  color: var(--text); text-align: right;
+  font-family: inherit; font-size: 16px; font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  -moz-appearance: textfield;
+}
+.group-row input:focus { outline: none; color: var(--accent); }
+.group-row input::placeholder,
+.form-row input::placeholder { color: var(--text-dim); font-weight: 400; }
+.group-foot {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 9px 14px 10px;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+}
+.group-foot:empty { display: none; }
+
+/* Two stacked lines inside any grouped row, not only the switch ones. */
+.group-text .row-title { display: block; font-size: 15px; font-weight: 500; }
+.group-text .row-hint {
+  display: block; font-size: 12px; color: var(--text-dim); margin-top: 2px;
+}
+input.switch {
+  flex: none; position: relative;
+  width: 51px; height: 31px; margin: 0;
+  border-radius: 999px; background: var(--border);
+  cursor: pointer;
+  transition: background 0.2s;
+  -webkit-appearance: none; appearance: none;
+}
+input.switch::after {
+  content: "";
+  position: absolute; top: 2px; left: 2px;
+  width: 27px; height: 27px; border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.22);
+  transition: transform 0.2s;
+}
+input.switch:checked { background: var(--accent); }
+input.switch:checked::after { transform: translateX(20px); }
+
+/* Segmented control: the track holds three options, the active one rides on
+   a raised surface pill. */
+.segmented {
+  /* Columns follow the option count: two presets on the host, three themes
+     in settings, without either page restating the track list. */
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr);
+  gap: 2px;
+  padding: 2px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.segmented button {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  padding: 9px 4px;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.segmented button.active {
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.14);
 }

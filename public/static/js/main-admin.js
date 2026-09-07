@@ -5,6 +5,7 @@
 // read-only list would cost far more than a five-second fetch.
 
 import { summarizeSession } from "./admin-logic.js";
+import { loadPrefs, applyTheme } from "./prefs.js";
 import * as ui from "./admin-ui.js";
 
 const POLL_MS = 5000;
@@ -58,3 +59,5 @@ document.addEventListener("visibilitychange", () => {
 
 refresh();
 startPolling();
+
+applyTheme(loadPrefs().theme);

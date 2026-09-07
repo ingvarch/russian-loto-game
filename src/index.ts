@@ -7,6 +7,7 @@
 //   GET  /admin/api/sessions   -- every game, newest activity first
 //   GET  /s/<id>/              -- admin page with bootstrap injected
 //   GET  /s/<id>/display       -- display page with bootstrap injected
+//   GET  /s/<id>/settings      -- per-device preferences, no session data
 //   GET  /s/<id>/api/state     -- last posted snapshot (or null)
 //   POST /s/<id>/api/state     -- store a new snapshot (owner cookie)
 //   GET  /s/<id>/api/events    -- SSE stream of state updates
@@ -133,6 +134,12 @@ async function handleSessionScoped(
   if (rest === "display" || rest === "display.html") {
     return handlePage(request, env, stub, "/display");
   }
+  // Preferences are per-device and need no session data, so the shell goes
+  // out as-is. The route stays session-scoped so the tab bar keeps working
+  // from both the board and the display.
+  if (rest === "settings" || rest === "settings.html") {
+    return handleShell(request, env, "/settings");
+  }
   if (rest === "api/state") {
     return handleState(request, env, stub, sessionId);
   }
@@ -209,6 +216,27 @@ class InjectJSON {
   }
 }
 
+async function handleShell(
+  request: Request,
+  env: Env,
+  assetPath: string,
+): Promise<Response> {
+  const url = new URL(request.url);
+  url.pathname = assetPath;
+  const assetRes = await env.ASSETS.fetch(new Request(url, request));
+  // A browser revalidates a cached shell with If-None-Match, and the assets
+  // binding answers 304: a valid response that carries no body and is not
+  // `ok`. Handing it straight back is the whole job -- there is nothing to
+  // rewrite. Only a real miss is a server error.
+  if (assetRes.status === 304) {
+    return assetRes;
+  }
+  if (!assetRes.ok) {
+    return new Response("page asset missing", { status: 500 });
+  }
+  return assetRes;
+}
+
 async function handlePage(
   request: Request,
   env: Env,
@@ -216,12 +244,9 @@ async function handlePage(
   assetPath: string,
 ): Promise<Response> {
   const cards = await stub.getCards();
-  const url = new URL(request.url);
-  url.pathname = assetPath;
-  const assetRes = await env.ASSETS.fetch(new Request(url, request));
-  if (!assetRes.ok) {
-    return new Response("page asset missing", { status: 500 });
-  }
+  const assetRes = await handleShell(request, env, assetPath);
+  // 304 (nothing to rewrite) and the 500 above both travel back untouched.
+  if (assetRes.status !== 200) return assetRes;
   return new HTMLRewriter()
     .on("script#cards-data", new InjectJSON(cards))
     .on("script#server-range", new InjectJSON(null))

@@ -1,0 +1,56 @@
+/* Settings page styles.
+ *
+ * Loaded on /s/<id>/settings after base.css. The rows, groups, switches and
+ * the segmented control all come from base.css; this file only lays the
+ * sections out and styles the two link rows.
+ */
+
+.settings-header {
+  padding: 14px 20px;
+  background: color-mix(in srgb, var(--surface) 76%, transparent);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  position: sticky; top: 0; z-index: 5;
+}
+.settings-header h1 {
+  margin: 0;
+  font-size: 22px; font-weight: 700; letter-spacing: -0.02em;
+}
+
+.settings-main {
+  max-width: 520px; margin: 0 auto;
+  padding: 20px 20px 28px;
+  display: flex; flex-direction: column; gap: 26px;
+}
+
+.settings-section { display: flex; flex-direction: column; gap: 8px; }
+
+.section-label {
+  font-size: 12px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.5px;
+  color: var(--text-dim);
+}
+
+.section-hint {
+  margin: 0;
+  font-size: 12px; line-height: 1.45;
+  color: var(--text-dim);
+}
+.section-hint.hidden { display: none; }
+
+/* A row that goes somewhere, rather than one that holds a value. Buttons and
+   anchors both wear it, so the button has to shed its native chrome. */
+.link-row {
+  width: 100%;
+  border: none;
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-appearance: none; appearance: none;
+}
+.link-row:active { background: var(--bg); }
+.link-chevron { flex: none; display: flex; color: var(--text-dim); }

@@ -15,6 +15,8 @@ import * as state from "./state.js";
 import * as ui from "./ui.js";
 import { openShareModal } from "./share-modal.js";
 import { registerServiceWorker } from "./pwa.js";
+import { loadPrefs, applyTheme } from "./prefs.js";
+import { startWakeLock } from "./wake-lock.js";
 
 const CARDS = JSON.parse(document.getElementById("cards-data").textContent);
 const SERVER_RANGE = JSON.parse(document.getElementById("server-range").textContent);
@@ -66,10 +68,14 @@ function connectSSE() {
 }
 
 const remoteState = await fetchRemoteState();
+const prefs = loadPrefs();
+applyTheme(prefs.theme);
+if (prefs.keepAwake) startWakeLock();
+
 const initialState =
   remoteState
   || state.loadState()
-  || state.freshState({ cardRange: SERVER_RANGE });
+  || state.freshState({ cardRange: SERVER_RANGE, easterEggs: prefs.easterEggs });
 
 ui.init({ cards: CARDS, initialState, onSave: pushToServer, autoOpenNewGame });
 connectSSE();

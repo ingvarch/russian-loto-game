@@ -11,6 +11,7 @@
 
 import { normalizeDeck } from "./normalize-deck.js";
 import { registerServiceWorker } from "./pwa.js";
+import { loadPrefs, applyTheme } from "./prefs.js";
 import { validateCards } from "./validate-cards.js";
 
 const errEl = document.getElementById("error");
@@ -91,4 +92,5 @@ document.getElementById("format-help-close").addEventListener("click", () => {
   helpModal.classList.remove("open");
 });
 
+applyTheme(loadPrefs().theme);
 registerServiceWorker();

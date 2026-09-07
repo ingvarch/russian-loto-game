@@ -76,3 +76,48 @@ describe("/s/<id>/display (display page)", () => {
     expect(Array.isArray(cards)).toBe(true);
   });
 });
+
+describe("/s/<id>/settings", () => {
+  it("returns 404 for an unknown session", async () => {
+    const res = await SELF.fetch("https://example.com/s/UNKNOWN999/settings");
+    expect(res.status).toBe(404);
+  });
+
+  it("serves the settings shell for a live session", async () => {
+    const { sessionId } = await createSession();
+    const res = await SELF.fetch(`https://example.com/s/${sessionId}/settings`);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Type")).toMatch(/text\/html/);
+    expect(await res.text()).toContain("settings");
+  });
+
+  it("accepts the .html spelling like the display route does", async () => {
+    const { sessionId } = await createSession();
+    const res = await SELF.fetch(
+      `https://example.com/s/${sessionId}/settings.html`,
+    );
+    expect(res.status).toBe(200);
+  });
+});
+
+// A browser revalidates a cached shell with If-None-Match. The assets
+// binding answers 304, which is not `ok`, so treating every non-2xx asset
+// response as "missing" turns an ordinary reload into a 500.
+describe("conditional requests for session shells", () => {
+  it.each([
+    ["host", ""],
+    ["display", "display"],
+    ["settings", "settings"],
+  ])("passes a 304 through for the %s shell", async (_name, rest) => {
+    const { sessionId } = await createSession();
+    const path = `https://example.com/s/${sessionId}/${rest}`;
+
+    const first = await SELF.fetch(path);
+    expect(first.status).toBe(200);
+    const etag = first.headers.get("ETag");
+    if (etag === null) return; // binding does not offer revalidation here
+
+    const second = await SELF.fetch(path, { headers: { "If-None-Match": etag } });
+    expect(second.status).toBe(304);
+  });
+});

@@ -10,6 +10,7 @@
 
 import * as logic from "./logic.js";
 import * as state from "./state.js";
+import { updatePrefs } from "./prefs.js";
 
 const LEVEL_LABELS = { 1: "одна линия", 2: "две линии", 3: "ПОЛНОЕ ЛОТО" };
 const LEVEL_LABELS_ACCUSATIVE = { 1: "одну линию", 2: "две линии", 3: "ПОЛНОЕ ЛОТО" };
@@ -649,6 +650,9 @@ function wireNewGameModal() {
   newGameModalEl.querySelector('[data-action="confirm"]').addEventListener("click", () => {
     const form = validateNewGameForm();
     if (form === null) return;
+    // The form is the other half of the settings screen's eggs switch: what
+    // the host picks here is what the next game starts with.
+    updatePrefs({ easterEggs: form.easterEggs });
     current = state.freshState(form);
     persist();
     render();

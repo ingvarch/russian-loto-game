@@ -11,29 +11,8 @@
 import * as displayUI from "./display-ui.js";
 import { openShareModal } from "./share-modal.js";
 import { registerServiceWorker } from "./pwa.js";
-
-const THEME_KEY = "loto-display-theme";
-
-function readStoredTheme() {
-  try { return localStorage.getItem(THEME_KEY); } catch (_e) { return null; }
-}
-
-function writeStoredTheme(value) {
-  try { localStorage.setItem(THEME_KEY, value); } catch (_e) { /* private mode */ }
-}
-
-if (readStoredTheme() === "light") document.body.classList.add("theme-light");
-
-const themeBtn = document.getElementById("theme-toggle");
-if (themeBtn) {
-  themeBtn.addEventListener("click", () => {
-    const light = document.body.classList.toggle("theme-light");
-    writeStoredTheme(light ? "light" : "dark");
-  });
-}
-
-const shareBtn = document.getElementById("share-display-btn");
-if (shareBtn) shareBtn.addEventListener("click", openShareModal);
+import { loadPrefs, applyTheme } from "./prefs.js";
+import { startWakeLock } from "./wake-lock.js";
 
 const CARDS = JSON.parse(document.getElementById("cards-data").textContent);
 const SERVER_RANGE = JSON.parse(document.getElementById("server-range").textContent);
@@ -88,5 +67,9 @@ document.addEventListener("visibilitychange", () => {
   }
   connectSSE();
 });
+
+const prefs = loadPrefs();
+applyTheme(prefs.theme);
+if (prefs.keepAwake) startWakeLock();
 
 registerServiceWorker();
