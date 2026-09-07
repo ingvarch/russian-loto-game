@@ -1,7 +1,14 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "types": ["@types/bun", "@cloudflare/workers-types"],
+    // @cloudflare/vitest-pool-workers ships the `cloudflare:test` module
+    // types (SELF, env, applyD1Migrations). Without it every spec fails
+    // to resolve the import and the suite goes unchecked.
+    "types": [
+      "@types/bun",
+      "@cloudflare/workers-types",
+      "@cloudflare/vitest-pool-workers"
+    ],
     "noEmit": true
   },
   "include": ["tests/**/*.ts", "tests/**/*.mts"],

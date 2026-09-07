@@ -15,6 +15,12 @@
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
 
+    // src/sessions-db.ts imports winningEvents from the client's logic.js
+    // so the "first confirmed crossing wins" rule has one home, shared by
+    // the display page and the statistics mirror. checkJs stays off: that
+    // file is covered by tests/js, not by tsc.
+    "allowJs": true,
+
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
     "resolveJsonModule": true,

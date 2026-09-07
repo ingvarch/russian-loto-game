@@ -28,13 +28,31 @@ on one device appears on the other within a tick.
 
 ```bash
 bun install
-bun run deploy            # production
+bun run deploy            # code only
+bun run deploy:full       # backup -> migrate -> deploy
 bun run deploy:staging    # `staging` env
 ```
 
+Use `deploy:full` for any release that carries a migration. It dumps the
+production database into `backups/` (gitignored), applies pending
+migrations, and only then ships the Worker -- so the schema is never
+behind the code, and there is a restore point if a migration misfires.
+Each step aborts the rest on failure.
+
 Wrangler reads `wrangler.toml` for everything: Durable Object class,
-static assets, rate-limit binding, observability. Don't change those
-in the Cloudflare dashboard -- the next deploy will overwrite them.
+D1 binding, static assets, rate-limit binding, observability. Don't
+change those in the Cloudflare dashboard -- the next deploy will
+overwrite them.
+
+One-time setup for the operator panel at `/admin`:
+
+```bash
+wrangler secret put ADMIN_PASSWORD
+wrangler d1 migrations apply russian-loto-db --remote
+```
+
+Until the password is set the panel stays locked -- an unset secret
+rejects every request rather than letting everyone in.
 
 The default deck is bundled from `cards/printed.json`. Refresh it by
 overwriting that file with the latest output of the Python CLI's
@@ -49,16 +67,27 @@ picks it up automatically.
 - `bun run test:all` — both suites.
 - `bun run typecheck` — TypeScript check without emit.
 - `bun run deploy` / `bun run deploy:staging` — production / staging deploy.
+- `bun run deploy:full` — back up D1 to `backups/`, apply migrations, then
+  deploy. Use this whenever a release includes a migration.
 
 Bun is the local toolchain (install, scripts, tests). The Worker
 itself runs on `workerd` in production -- Bun never touches the
 runtime.
 
+## Operator panel
+
+`/admin` lists every game -- kegs drawn, last number, winners per level,
+whether the host is still active. Read-only for now. Password is the
+`ADMIN_PASSWORD` secret, prompted by the browser via HTTP Basic.
+
+The same D1 database also accumulates per-game statistics (`draws`,
+`wins`) for later questions like which numbers come up most often.
+
 ## Architecture
 
 See `CLAUDE.md` for the full design: Worker routing, Durable Object
 session model, SSE fan-out + heartbeat, owner-cookie auth, custom-deck
-upload validation, and testing strategy.
+upload validation, the D1 mirror, and testing strategy.
 
 ## Related
 

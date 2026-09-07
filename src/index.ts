@@ -3,6 +3,8 @@
 //
 // Path layout:
 //   POST /api/session          -- create a new session, set owner cookie
+//   GET  /admin                -- admin panel shell (HTTP Basic)
+//   GET  /admin/api/sessions   -- every game, newest activity first
 //   GET  /s/<id>/              -- admin page with bootstrap injected
 //   GET  /s/<id>/display       -- display page with bootstrap injected
 //   GET  /s/<id>/api/state     -- last posted snapshot (or null)
@@ -12,8 +14,10 @@
 //                                 run_worker_first in wrangler.toml limits
 //                                 Worker invocations to /api/* and /s/*.
 
+import { handleAdmin } from "./admin.js";
 import { readOwnerToken } from "./auth.js";
 import { DEFAULT_CARDS } from "./default-cards.js";
+import { createSession, recordState } from "./sessions-db.js";
 import { newOwnerToken, newSessionId } from "./session-id.js";
 import type { Env } from "./types.js";
 import { validateCards } from "./validate-cards.js";
@@ -28,6 +32,11 @@ export default {
 
     if (url.pathname === "/api/session") {
       return handleSessionCreate(request, env);
+    }
+
+    if (url.pathname === "/admin" || url.pathname.startsWith("/admin/") ||
+        url.pathname === "/admin.html") {
+      return handleAdmin(request, env);
     }
 
     const m = SESSION_PATH_RE.exec(url.pathname);
@@ -79,6 +88,9 @@ async function handleSessionCreate(request: Request, env: Env): Promise<Response
 
   const stub = env.GAME_ROOM.get(env.GAME_ROOM.idFromName(sessionId));
   await stub.init(ownerToken, cards);
+  await mirrorWrite("create", () =>
+    createSession(env.DB, sessionId, Date.now()),
+  );
 
   // Owner cookie is scoped to the session path so two sessions in the same
   // browser don't collide. HttpOnly keeps the token out of JS; the admin
@@ -116,13 +128,13 @@ async function handleSessionScoped(
   }
 
   if (rest === "" || rest === "index.html") {
-    return handlePage(request, env, stub, "/admin");
+    return handlePage(request, env, stub, "/host");
   }
   if (rest === "display" || rest === "display.html") {
     return handlePage(request, env, stub, "/display");
   }
   if (rest === "api/state") {
-    return handleState(request, stub);
+    return handleState(request, env, stub, sessionId);
   }
   if (rest === "api/events") {
     return stub.fetch(request);
@@ -134,9 +146,23 @@ async function handleSessionScoped(
   return new Response("not found", { status: 404 });
 }
 
+// The D1 mirror is advisory: it feeds the admin panel and the statistics
+// tables, and losing a row costs a listing entry, never a game. So every
+// write to it is contained here -- a failure is logged (observability is
+// on) and the request carries on.
+async function mirrorWrite(what: string, op: () => Promise<void>): Promise<void> {
+  try {
+    await op();
+  } catch (err) {
+    console.error(`session mirror write failed (${what}):`, err);
+  }
+}
+
 async function handleState(
   request: Request,
+  env: Env,
   stub: DurableObjectStub<import("./game-room.js").GameRoom>,
+  sessionId: string,
 ): Promise<Response> {
   if (request.method === "GET") {
     const state = await stub.getState();
@@ -154,6 +180,10 @@ async function handleState(
       return new Response("invalid JSON", { status: 400 });
     }
     await stub.setState(parsed);
+    // Mirror only after the authoritative write succeeded.
+    await mirrorWrite("state", () =>
+      recordState(env.DB, sessionId, parsed, Date.now()),
+    );
     return new Response(null, { status: 200 });
   }
   return new Response("method not allowed", {
@@ -167,7 +197,10 @@ async function handleState(
 // /s/<id>/ and /s/<id>/display serve the shared HTML shells from the
 // [assets] binding, with the two `<script type="application/json">`
 // blobs (cards + range) rewritten to the session's actual values. The
-// shells live at /index.html and /display.html in the assets bucket.
+// shells live at /host.html and /display.html in the assets bucket.
+//
+// The host's shell is host.html, not admin.html: /admin is the operator
+// panel, a different page for a different audience.
 
 class InjectJSON {
   constructor(private readonly value: unknown) {}

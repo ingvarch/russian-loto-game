@@ -11,3 +11,10 @@ dist/
 *.log
 coverage/
 graphify-out
+
+# D1 exports written by scripts/deploy-full.sh. Snapshots of live game
+# data -- never commit them.
+backups/
+
+# Playwright MCP scratch output (snapshots, screenshots, console logs).
+.playwright-mcp/

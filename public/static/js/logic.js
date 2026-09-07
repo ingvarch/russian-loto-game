@@ -158,12 +158,14 @@ export function nextTargetLevel(state, cards) {
   return null;
 }
 
-// First confirmed winner per level, used by the /display page. Events with
-// status "pending" or "absent" are skipped -- we only surface cards that
-// the admin has confirmed are actually playing. For ties on callCount,
-// falls back to lowest seq.
-// Returns { 1: {seq, cid}|null, 2: ..., 3: ... }.
-export function winnersByLevel(events) {
+// The winning event per level: first confirmed crossing, ties on callCount
+// broken by lowest seq. Events with status "pending" or "absent" are skipped
+// -- we only surface cards the admin confirmed are actually playing.
+// Returns { 1: event|null, 2: ..., 3: ... }.
+//
+// Keeps the whole event so callers needing more than seq/cid (the statistics
+// mirror wants callCount) don't re-implement the selection rule.
+export function winningEvents(events) {
   const out = { 1: null, 2: null, 3: null };
   for (const lvl of [1, 2, 3]) {
     const filtered = (events || []).filter(
@@ -178,7 +180,19 @@ export function winnersByLevel(events) {
     const first = filtered
       .filter((e) => (e.callCount === undefined ? Infinity : e.callCount) === minCall)
       .sort((a, b) => a.seq - b.seq)[0];
-    if (first) out[lvl] = { seq: first.seq, cid: first.cid };
+    if (first) out[lvl] = first;
+  }
+  return out;
+}
+
+// Winner identity per level, used by the /display page.
+// Returns { 1: {seq, cid}|null, 2: ..., 3: ... }.
+export function winnersByLevel(events) {
+  const won = winningEvents(events);
+  const out = { 1: null, 2: null, 3: null };
+  for (const lvl of [1, 2, 3]) {
+    const e = won[lvl];
+    if (e) out[lvl] = { seq: e.seq, cid: e.cid };
   }
   return out;
 }

@@ -1,91 +1,68 @@
-# Cloudflare Workers configuration for russian-loto-game.
-#
-# Reference:
-#   https://developers.cloudflare.com/workers/wrangler/configuration/
-#
-# Treat this file as the source of truth. Do not edit deployment settings
-# in the Cloudflare dashboard; Wrangler will overwrite them on the next
-# deploy.
+# Source of truth for deployment. Do not edit these in the dashboard —
+# the next deploy overwrites them.
 
 name = "russian-loto-game"
 main = "src/index.ts"
-# Pinned to the latest date the bundled workerd in @cloudflare/vitest-pool-workers
-# supports. Cloudflare's production runtime is current; compatibility_date is
-# a "no newer than this" contract, so production still gets the same behaviour
-# we test against. Bump alongside the wrangler/pool-workers upgrade when we
-# need a newer runtime feature.
+# Pinned to the newest date the bundled workerd supports. Bump alongside
+# the wrangler/pool-workers upgrade, not on its own.
 compatibility_date = "2025-09-06"
-
-# Enables *.workers.dev subdomain alongside the custom domain so the raw
-# preview URL stays usable for testing. Flip to false to lock everything
-# behind the custom domain.
 workers_dev = true
+# Worker bundle only. Client JS under public/ ships unminified as ES
+# modules — the assets binding serves it verbatim, no build step.
+minify = true
 
 [[routes]]
 pattern = "loto.1ly.dev"
 custom_domain = true
 
-# ---- Static assets -------------------------------------------------------
-#
-# public/ holds index.html, display.html, and everything under static/.
-# The Worker script only intercepts /api/* and /s/<id>/api/* — everything
-# else is served as a plain asset without billing a Worker invocation.
-# html_handling = "auto-trailing-slash" resolves /display to display.html.
-
+# `/admin/*` needs the literal slash, so bare `/admin` and `/admin.html`
+# are listed too — otherwise html_handling serves the shell straight from
+# assets and the password prompt never appears.
 [assets]
 directory = "./public"
 binding = "ASSETS"
 html_handling = "auto-trailing-slash"
 not_found_handling = "404-page"
-run_worker_first = ["/api/*", "/s/*"]
+run_worker_first = ["/api/*", "/s/*", "/admin", "/admin/*", "/admin.html"]
 
-# ---- Rate limiting -------------------------------------------------------
-#
-# Per-IP cap on POST /api/session so a runaway script can't churn through
-# Durable Object instances. 60 sessions per minute is generous for human
-# use (a host doesn't refresh that often) and trivially blocks abuse.
-# The binding is optional in src/types.ts; missing it (e.g. local dev
-# without the namespace, or tests) just disables the check.
-
-[[unsafe.bindings]]
+# Optional in src/types.ts: unbound (tests, local dev) just skips the check.
+[[ratelimits]]
 name = "SESSION_RATE_LIMITER"
-type = "ratelimit"
 namespace_id = "1001"
 simple = { limit = 60, period = 60 }
 
-# ---- Observability -------------------------------------------------------
-#
-# Enables Workers Logs so production errors and recent requests are visible
-# in the dashboard. head_sampling_rate defaults to 1.0 (log everything);
-# adjust once traffic justifies sampling.
+# Session mirror + game statistics. The Worker writes it; GameRoom does
+# not, keeping game state opaque to the DO.
+[[d1_databases]]
+binding = "DB"
+database_name = "russian-loto-db"
+database_id = "2ee69f1f-ff0c-423c-8f33-95a5973860ed"
+migrations_dir = "migrations"
 
+# Sample everything: traffic is a handful of games, and the one thing we
+# need in the dashboard is the rare failed D1 mirror write, which sampling
+# would drop.
 [observability]
 enabled = true
+head_sampling_rate = 1
 
-# ---- Durable Objects -----------------------------------------------------
-#
-# One GameRoom instance per game session. Holds the authoritative game
-# state and the pool of SSE subscribers.
+[observability.logs]
+enabled = true
+invocation_logs = true
+head_sampling_rate = 1
 
+# One GameRoom per session: authoritative state + SSE subscribers.
 [[durable_objects.bindings]]
 name = "GAME_ROOM"
 class_name = "GameRoom"
 
-# Migrations describe schema changes to Durable Object classes and run in
-# order on deploy. Never edit an applied migration; add a new tag instead.
-# new_sqlite_classes opts into the SQLite-backed storage class (the modern
-# default for new DOs). See:
-#   https://developers.cloudflare.com/durable-objects/reference/durable-objects-migrations/
-
+# Never edit an applied migration; add a new tag.
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["GameRoom"]
 
-# ---- Environments --------------------------------------------------------
-#
-# Override keys per environment (staging, production). Top-level values
-# above are inherited unless re-declared.
-
+# Bindings are not inherited by an environment — everything below is
+# re-declared on purpose.
 [env.staging]
 name = "russian-loto-game-staging"
 workers_dev = true
@@ -94,6 +71,21 @@ workers_dev = true
 name = "GAME_ROOM"
 class_name = "GameRoom"
 
+# Own namespace so staging traffic doesn't spend production's budget.
+[[env.staging.ratelimits]]
+name = "SESSION_RATE_LIMITER"
+namespace_id = "1002"
+simple = { limit = 60, period = 60 }
+
 [[env.staging.migrations]]
 tag = "v1"
 new_sqlite_classes = ["GameRoom"]
+
+# Shares production's database, so staging games pollute the statistics.
+# Before staging sees real use: wrangler d1 create russian-loto-db-staging
+# Secrets are per-environment: wrangler secret put ADMIN_PASSWORD --env staging
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "russian-loto-db"
+database_id = "2ee69f1f-ff0c-423c-8f33-95a5973860ed"
+migrations_dir = "migrations"

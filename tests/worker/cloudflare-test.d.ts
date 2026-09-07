@@ -3,5 +3,8 @@
 import type { Env } from "../../src/types.js";
 
 declare module "cloudflare:test" {
-  interface ProvidedEnv extends Env {}
+  interface ProvidedEnv extends Env {
+    // Injected by vitest.config.ts, consumed by apply-migrations.ts.
+    TEST_MIGRATIONS: D1Migration[];
+  }
 }

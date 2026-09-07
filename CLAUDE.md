@@ -112,13 +112,20 @@ Browser (admin at /s/<id>/)         Browser (display at /s/<id>/display)
         v                                          v
                 Cloudflare Worker (src/index.ts)
                        router + auth
-                              |
-                              v
-           Durable Object  GameRoom  (one per session)
+                          |        |
+                          v        v
+           Durable Object  |    D1 (binding DB)
+             GameRoom      |      - sessions mirror
+           (one per        |      - draws / wins statistics
+            session)       |
              - state snapshot (in memory + SQLite storage)
              - Set<WritableStreamDefaultWriter>  for SSE fan-out
              - owner token check for writes
 ```
+
+The Worker writes D1, the Durable Object does not. GameRoom treats game
+state as an opaque blob — it is a relay between host and display — so
+all knowledge of the state shape stays at the Worker layer.
 
 ### Request flow
 
@@ -128,9 +135,9 @@ Browser (admin at /s/<id>/)         Browser (display at /s/<id>/display)
   GameRoom DO for it, installs the cards JSON (default or uploaded),
   returns `{ sessionId, ownerToken }`. Owner token is set in an
   `HttpOnly; Secure; Path=/s/<id>/` cookie.
-- `GET /s/<id>/` — serves `index.html`, bootstrap JSON is fetched
-  client-side from `/s/<id>/api/state` which returns the cards + the
-  latest state.
+- `GET /s/<id>/` — serves `host.html` (the host's live-game page) with
+  the cards blob injected by HTMLRewriter. Note the filename: `/admin`
+  is the operator panel, a different page for a different audience.
 - `GET /s/<id>/display` — serves `display.html`. No auth. Reads via
   `/s/<id>/api/state` and subscribes to `/s/<id>/api/events` for live
   updates.
@@ -142,6 +149,10 @@ Browser (admin at /s/<id>/)         Browser (display at /s/<id>/display)
   Subscribers removed on disconnect.
 - `GET /s/<id>/qr.svg` — server-rendered SVG QR code of the display
   URL. Cached by the edge for 1h via `Cache-Control: max-age=3600`.
+- `GET /admin` — operator panel shell (`public/admin.html`), behind
+  HTTP Basic. Read-only listing of every game.
+- `GET /admin/api/sessions` — the listing itself, newest activity
+  first. `?activeOnly=1` hides games untouched for over an hour.
 
 ### Session lifecycle
 
@@ -154,9 +165,13 @@ Browser (admin at /s/<id>/)         Browser (display at /s/<id>/display)
 
 ### Auth
 
-- Admin writes require the owner cookie created at `POST /api/session`.
+- Host writes require the owner cookie created at `POST /api/session`.
 - Display and read endpoints are anonymous — anyone with the session
   URL can watch.
+- `/admin*` is HTTP Basic against the `ADMIN_PASSWORD` secret: username
+  ignored, password compared in constant time, unset secret fails
+  closed. Basic rather than a login form because the 401 challenge makes
+  the browser render its own password prompt.
 - The session id is unguessable (minimum 8 URL-safe chars). That is the
   entire access-control surface; anyone with the URL can watch, only
   the cookie holder can write.
@@ -165,18 +180,40 @@ Browser (admin at /s/<id>/)         Browser (display at /s/<id>/display)
 
 `POST /api/session` is throttled per client IP via the optional
 `SESSION_RATE_LIMITER` binding (Cloudflare's built-in rate-limit API,
-configured under `[[unsafe.bindings]]` in `wrangler.toml`). Default
-limit is 60 sessions per minute per IP. Tests skip the check when the
-binding isn't bound, so local dev and CI run unconstrained.
+declared under `[[ratelimits]]` in `wrangler.toml`). Default limit is 60
+sessions per minute per IP. Tests skip the check when the binding isn't
+bound, so local dev and CI run unconstrained.
+
+Use `[[ratelimits]]`, not `[[unsafe.bindings]]`. The latter is Wrangler's
+escape hatch for bindings with no first-class config key: unvalidated
+schema, no compatibility guarantee, and a warning on every command. Rate
+limiting graduated out of it. Staging gets its own `namespace_id` so it
+does not spend production's counter.
+
+Known noise: `bun run test:worker` prints `Unexpected fields found in
+top-level field: "ratelimits"`. `@cloudflare/vitest-pool-workers@0.8.x`
+bundles wrangler 4.35, which predates the key; the 4.85 CLI accepts it
+and deploys cleanly. Harmless — the binding was never bound under test
+anyway, and `handleSessionCreate` skips the check when it is absent.
+Tech debt, not a fix: clearing it means upgrading the pool to 0.22,
+which requires vitest 4 (we are on 2.1.9). That upgrade would also
+unpin `compatibility_date`, so treat it as one piece of work.
 
 ## Tech stack
 
 - Cloudflare Workers runtime, TypeScript for the server code.
 - Durable Objects with SQLite storage class.
+- D1 (binding `DB`, database `russian-loto-db`) for the session mirror
+  and cross-game statistics. Schema in `migrations/`.
 - Static assets served from `public/` via the Workers Assets binding.
   No bundler for client code — native ES modules. Wrangler bundles
   the Worker; client code ships as-is.
 - Wrangler for dev and deploy. Config is TOML (`wrangler.toml`).
+  `minify = true` covers the Worker bundle only; client JS under
+  `public/` ships verbatim through the assets binding. Observability
+  logs at a sampling rate of 1 — traffic is tiny and the event worth
+  catching (a failed D1 mirror write) is rare enough that sampling
+  would lose it.
 - `compatibility_date` is pinned; bump it when a runtime feature we
   want lands.
 - Bun is the local toolchain: package install, script runner, and
@@ -199,40 +236,48 @@ russian-loto-game/
 ├── .gitignore
 ├── src/
 │   ├── index.ts                   # Worker entry: router + dispatch
-│   ├── router.ts                  # path -> handler table
-│   ├── session.ts                 # session id generation, cookie helpers
 │   ├── game-room.ts               # Durable Object class
-│   ├── auth.ts                    # owner-token parsing
+│   ├── admin.ts                   # /admin panel handler
+│   ├── auth.ts                    # owner cookie + admin basic auth
+│   ├── sessions-db.ts             # D1 mirror + statistics
 │   ├── session-id.ts              # session id + owner token generation
-│   ├── default-cards.ts           # bundled default deck (currently empty)
+│   ├── default-cards.ts           # bundled default deck
+│   ├── validate-cards.ts          # uploaded-deck invariants
 │   └── types.ts                   # shared Env interface
+├── migrations/
+│   └── 0001_sessions.sql          # D1 schema: sessions / draws / wins
 ├── public/
 │   ├── index.html                 # landing page (new game / upload deck)
-│   ├── admin.html                 # admin shell, served via HTMLRewriter
-│   ├── display.html               # display shell, served via HTMLRewriter
+│   ├── host.html                  # host's live-game shell (HTMLRewriter)
+│   ├── display.html               # display shell (HTMLRewriter)
+│   ├── admin.html                 # operator panel shell
 │   └── static/
 │       ├── css/
 │       │   ├── base.css
 │       │   ├── landing.css
 │       │   ├── game.css
-│       │   └── display.css
+│       │   ├── display.css
+│       │   └── admin.css
 │       └── js/
 │           ├── logic.js           # pure game logic (portable, tested)
 │           ├── state.js           # state shape + mutators
-│           ├── ui.js              # admin DOM rendering
-│           ├── main-game.js       # admin bootstrap
+│           ├── ui.js              # host DOM rendering
+│           ├── main-game.js       # host bootstrap
 │           ├── display-ui.js      # display DOM rendering
 │           ├── main-display.js    # display bootstrap
+│           ├── admin-logic.js     # pure listing-row summary
+│           ├── admin-ui.js        # panel DOM rendering
+│           ├── main-admin.js      # panel bootstrap (polls the listing)
+│           ├── normalize-deck.js  # registry shape -> flat card array
+│           ├── validate-cards.js  # client mirror of the server checks
 │           └── landing.js         # landing-page session creation
 ├── cards/
 │   └── printed.json               # default deck, exported from the
 │                                  # sibling Python CLI (`russian-loto`)
 └── tests/
-    ├── js/
-    │   ├── logic.test.mjs         # Bun via node:test
-    │   └── state.test.mjs
-    └── worker/
-        └── game-room.spec.ts      # Vitest + workers pool
+    ├── js/                        # Bun, pure modules
+    └── worker/                    # Vitest + workers pool (real workerd)
+        └── apply-migrations.ts    # setup file: applies migrations
 ```
 
 ## Development workflow
@@ -258,13 +303,33 @@ reset a local session, delete that directory.
 ## Deployment
 
 ```bash
-bun run deploy            # wrangler deploy
+bun run deploy            # wrangler deploy, code only
+bun run deploy:full       # backup -> migrate -> deploy
 bun run deploy:staging    # wrangler deploy --env staging
 ```
+
+`deploy:full` (`scripts/deploy-full.sh`) is the path for any release
+carrying a migration. Order is deliberate: `wrangler d1 export --remote`
+into `backups/` first so a bad migration has a restore point, migrations
+second, `wrangler deploy` last so the code never lands ahead of the
+schema it needs. `set -euo pipefail` plus an empty-file check on the
+export abort the rest rather than continuing half-done. `backups/` is
+gitignored — those dumps hold live game data.
 
 Production deploys to the `name` in `wrangler.toml`. Secrets (if any)
 go through `wrangler secret put <NAME>`. Never commit secrets; never
 put sensitive values under `[vars]`.
+
+The admin panel needs its password and its schema:
+
+```bash
+wrangler secret put ADMIN_PASSWORD
+wrangler d1 migrations apply russian-loto-db --remote
+```
+
+A new migration file in `migrations/` needs the same
+`d1 migrations apply` before the deploy that relies on it. Never edit an
+applied migration; add a numbered file instead.
 
 The first deploy applies the `[[migrations]]` to create the
 `GameRoom` Durable Object class. Every later change to that class —
@@ -326,9 +391,18 @@ date and update this document with what changed. Do not bump casually.
 - Two TS configs:
   - `tsconfig.json` — `src/` only, types `["@cloudflare/workers-types"]`.
     Worker code must not see Bun globals.
-  - `tsconfig.test.json` — `tests/` only, types
-    `["@types/bun", "@cloudflare/workers-types"]`. Test files can use
-    `bun:test` and Workers types where they overlap with vitest.
+  - `tsconfig.test.json` — `tests/` only, types `["@types/bun",
+    "@cloudflare/workers-types", "@cloudflare/vitest-pool-workers"]`.
+    The last one supplies the `cloudflare:test` module types; without it
+    every spec fails to resolve the import and the suite silently goes
+    unchecked.
+- D1 migrations are not applied automatically. `vitest.config.ts` reads
+  `migrations/` with `readD1Migrations` and passes them as a binding;
+  `tests/worker/apply-migrations.ts` runs `applyD1Migrations` as a setup
+  file. Storage is isolated per test, so a spec may even drop a table to
+  simulate D1 being down.
+- `ADMIN_PASSWORD` reaches tests through
+  `poolOptions.workers.miniflare.bindings`, never `[vars]`.
 - Never mock what you can test for real. No stubs of the Durable
   Object — spin up the real one under Vitest.
 
@@ -371,6 +445,33 @@ The migration plan, with status:
    client mirror), `printed.json` registry shape auto-detected on
    upload, multi-admin sync via the same SSE stream the display uses.
 
+## Operator panel
+
+`/admin`, behind HTTP Basic. Read-only for now: it lists games, it does
+not run them. Design notes in
+`docs/plans/2026-09-07-admin-panel-design.md`.
+
+The listing is one D1 query, not a fan-out to N Durable Objects, because
+the Worker already mirrors every state POST into `sessions.state_json`.
+The page summarises that blob itself with `admin-logic.js`, reusing
+`winnersByLevel` from `logic.js`, so the "first confirmed crossing at a
+level wins" rule has exactly one home. `src/sessions-db.ts` imports the
+same module — hence `allowJs` in `tsconfig.json`.
+
+`draws` and `wins` are materialised once a game reaches полное лото,
+not on every ball: `called` also shrinks on отжатие, so a full rewrite
+per ball would cost ~4000 row writes per game against a 100k/day free
+tier. Abandoned games keep `state_json` and can be backfilled.
+
+Every D1 write from the request path is wrapped so a failure logs and
+continues. The mirror feeds a panel and a statistics table; it must
+never be able to stop a game in progress.
+
+Next steps when the panel grows: running a game from the panel (the
+sibling `guess-the-melody` does this with an `X-Admin-Override` header
+the DO trusts because the binding is server-only), and aggregate views
+over `draws`/`wins`.
+
 ## Gotchas
 
 - A Durable Object can be evicted at any time. Do not store
@@ -384,6 +485,18 @@ The migration plan, with status:
   patterns. Any path we want the Worker to own must match that list.
 - The owner cookie is scoped to the session path — a host opening two
   sessions in the same browser gets two independent cookies.
+- A `run_worker_first` glob needs its literal slash: `/admin/*` does not
+  match bare `/admin`. Miss that and `html_handling` quietly serves
+  `admin.html` from the assets binding, with no password prompt. Both
+  spellings plus `/admin.html` are listed.
+- `env.ASSETS.fetch()` does not re-enter the router, so a Worker can
+  serve a file whose own path is under `run_worker_first` without
+  looping. There is a test pinning this.
+- Bindings are never inherited by a `[env.*]` block. Adding one at the
+  top level means adding it to `[env.staging]` too, or the staging
+  deploy fails at runtime.
+- The host's page is `public/host.html`, not `admin.html` — `/admin` is
+  the operator panel. The two were previously easy to confuse.
 
 ## Commit prompt
 

@@ -14,11 +14,17 @@ async function createSession(): Promise<{ sessionId: string; cookie: string }> {
   return { sessionId, cookie };
 }
 
+// Only the read() half of a reader is used here. Naming the shape
+// structurally keeps the helper out of the fight between the DOM's
+// ReadableStreamDefaultReader and the Workers one (which additionally
+// declares readMany) -- res.body.getReader() may be typed as either.
+interface ChunkReader {
+  read(): Promise<{ done: boolean; value?: Uint8Array | undefined }>;
+}
+
 // Read chunks from an SSE stream until at least one full `data:` event
 // has been received, then return its parsed JSON payload.
-async function readNextDataEvent(
-  reader: ReadableStreamDefaultReader<Uint8Array>,
-): Promise<unknown> {
+async function readNextDataEvent(reader: ChunkReader): Promise<unknown> {
   const decoder = new TextDecoder();
   let buf = "";
   while (true) {

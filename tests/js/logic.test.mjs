@@ -30,6 +30,7 @@ import {
   resolveLevel,
   rowHits,
   winnersByLevel,
+  winningEvents,
   winnersLockedNumbers,
 } from "../../public/static/js/logic.js";
 
@@ -391,6 +392,52 @@ test("winnersByLevel: pending events are skipped (no winner yet)", () => {
 test("winnersByLevel: legacy events with no status field count as confirmed", () => {
   const events = [{ cid: "a", seq: 1, level: 1, callCount: 10 }];
   assert.deepEqual(winnersByLevel(events)[1], { seq: 1, cid: "a" });
+});
+
+
+// ---- winningEvents -------------------------------------------------------
+//
+// The primitive winnersByLevel is built on. It keeps the whole event, so
+// callers that need callCount (the statistics mirror) don't have to
+// re-derive the "first confirmed at a level" rule for themselves.
+
+test("winningEvents: empty events -> nulls", () => {
+  assert.deepEqual(winningEvents([]), { 1: null, 2: null, 3: null });
+});
+
+test("winningEvents: keeps the full event, callCount included", () => {
+  const events = [
+    { cid: "c", seq: 3, level: 1, callCount: 20, status: "confirmed" },
+    { cid: "b", seq: 2, level: 1, callCount: 15, status: "confirmed" },
+  ];
+  assert.deepEqual(winningEvents(events)[1], {
+    cid: "b",
+    seq: 2,
+    level: 1,
+    callCount: 15,
+    status: "confirmed",
+  });
+});
+
+test("winningEvents: applies the same skip rules as winnersByLevel", () => {
+  const events = [
+    { cid: "a", seq: 1, level: 1, callCount: 10, status: "pending" },
+    { cid: "b", seq: 2, level: 2, callCount: 10, status: "absent" },
+  ];
+  assert.deepEqual(winningEvents(events), { 1: null, 2: null, 3: null });
+});
+
+test("winningEvents: ties on callCount resolve to lowest seq", () => {
+  const events = [
+    { cid: "x", seq: 7, level: 3, callCount: 10, status: "confirmed" },
+    { cid: "y", seq: 3, level: 3, callCount: 10, status: "confirmed" },
+  ];
+  assert.equal(winningEvents(events)[3].cid, "y");
+});
+
+test("winningEvents: tolerates a null/undefined events list", () => {
+  assert.deepEqual(winningEvents(null), { 1: null, 2: null, 3: null });
+  assert.deepEqual(winningEvents(undefined), { 1: null, 2: null, 3: null });
 });
 
 

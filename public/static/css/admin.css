@@ -1,0 +1,183 @@
+/* Admin panel styles.
+ *
+ * Loaded on /admin after base.css. Read-only listing of games: one card
+ * per session, refreshed by polling. Reads on phone and laptop; the card
+ * grid collapses to a single column on narrow screens.
+ */
+
+.admin-header {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 12px;
+  padding: 12px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 5;
+}
+.admin-title { display: flex; align-items: baseline; gap: 8px; }
+.admin-title h1 { font-size: 20px; font-weight: 600; margin: 0; }
+.admin-count {
+  font-size: 13px; color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-actions { display: flex; align-items: center; gap: 12px; }
+.toggle {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 14px; color: var(--text-dim);
+  cursor: pointer; user-select: none;
+}
+.toggle input { accent-color: var(--accent); }
+
+.refresh-btn {
+  background: transparent; border: 1px solid var(--border);
+  color: var(--text); padding: 8px 14px; border-radius: 8px;
+  font-size: 14px; font-weight: 500; font-family: inherit;
+  cursor: pointer;
+  -webkit-appearance: none; appearance: none;
+}
+.refresh-btn:active { background: var(--border); }
+
+.admin-error {
+  margin: 0; padding: 10px 16px;
+  background: var(--level3); color: #fff;
+  font-size: 14px;
+}
+
+.admin-main {
+  padding: 16px 16px calc(24px + env(safe-area-inset-bottom));
+  max-width: 1200px; margin: 0 auto;
+}
+.admin-empty {
+  color: var(--text-dim); text-align: center;
+  padding: 48px 16px; margin: 0; font-size: 15px;
+}
+
+.game-list {
+  display: grid; gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+
+.game-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex; flex-direction: column; gap: 14px;
+  box-shadow: var(--shadow);
+}
+
+.game-card-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px;
+}
+.game-id {
+  font-size: 17px; font-weight: 600;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  letter-spacing: 0.02em;
+}
+
+/* Status pill. Live means the host acted recently; идёт means a game in
+ * progress the host stepped away from; a finished game says so. */
+.game-status {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 12px; font-weight: 600;
+  padding: 3px 9px; border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.game-status::before {
+  content: ""; width: 7px; height: 7px; border-radius: 50%;
+  background: currentColor;
+}
+.game-status.is-live { color: var(--accent); border-color: var(--accent); }
+.game-status.is-done { color: var(--level3); border-color: var(--level3); }
+
+.game-meta {
+  font-size: 13px; color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.game-progress {
+  display: flex; align-items: center; gap: 10px;
+}
+.game-called {
+  font-size: 34px; font-weight: 700; line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.game-called .of-total {
+  font-size: 17px; font-weight: 400; color: var(--text-dim);
+}
+.game-last {
+  margin-left: auto;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 2px;
+}
+.game-last .label { font-size: 11px; color: var(--text-dim); }
+.game-last .ball {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 38px; height: 38px; padding: 0 8px;
+  border-radius: 50%;
+  background: var(--accent); color: var(--accent-text);
+  font-size: 18px; font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.game-last .ball.empty {
+  background: transparent; color: var(--text-dim);
+  border: 1px dashed var(--border);
+}
+
+.game-levels { display: flex; flex-direction: column; gap: 6px; }
+/* Fixed first column so the winner values line up across all three rows;
+ * "Полное лото" is wider than the other two labels. */
+.level-row {
+  display: grid; grid-template-columns: 118px 1fr;
+  align-items: center; gap: 8px;
+  font-size: 14px;
+}
+.level-name { color: var(--text-dim); }
+.level-name::before {
+  content: ""; display: inline-block;
+  width: 8px; height: 8px; border-radius: 2px;
+  margin-right: 7px; vertical-align: middle;
+  background: currentColor;
+}
+.level-row.lvl-1 .level-name { color: var(--level1); }
+.level-row.lvl-2 .level-name { color: var(--level2); }
+.level-row.lvl-3 .level-name { color: var(--level3); }
+.level-winner {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.level-winner.none { color: var(--text-dim); font-weight: 400; }
+
+/* margin-top:auto pins the footer to the bottom, so cards of differing
+ * height (a pending notice adds a line) still share a footer baseline. */
+.game-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+.game-jackpot {
+  font-size: 13px; color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+.game-link {
+  color: var(--accent); text-decoration: none;
+  font-size: 14px; font-weight: 500;
+}
+.game-link:active { opacity: 0.6; }
+
+/* A pending crossing blocks the grid: the host cannot call another
+ * number until they confirm or dismiss it. Worth shouting about. */
+.game-pending {
+  font-size: 13px; font-weight: 600;
+  color: var(--accent);
+}
+
+.hidden { display: none !important; }
+
+@media (max-width: 420px) {
+  .admin-actions { width: 100%; justify-content: space-between; }
+}
