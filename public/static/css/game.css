@@ -628,6 +628,12 @@ input.switch:checked::after { transform: translateX(20px); }
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
+  /* An overlay scrollbar paints on the scroller's own right edge, which is
+     where the field borders sit. Widen the scroller into the modal's padding
+     and inset the content by the same amount, so the bar gets a gutter of
+     its own and the rows stay aligned with the title and the buttons. */
+  margin-right: -12px;
+  padding-right: 12px;
 }
 /* A column flex scroller shrinks its items once the content overflows, and
    .form-group has overflow:hidden, so its min-height resolves to 0 and the
