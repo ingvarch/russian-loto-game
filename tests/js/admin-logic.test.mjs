@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { summarizeSession, LIVE_WINDOW_MS } from "../../public/static/js/admin-logic.js";
+import { summarizeSession, LIVE_WINDOW_MS, TOTAL_KEGS } from "../../public/static/js/admin-logic.js";
 
 const NOW = 1_700_000_000_000;
 
@@ -119,4 +119,35 @@ test("summarizeSession: survives a malformed state blob", () => {
     assert.equal(s.lastNumber, null);
     assert.deepEqual(s.winners, { 1: null, 2: null, 3: null });
   }
+});
+
+test("summarizeSession: progress is the called fraction of the full keg set", () => {
+  const empty = summarizeSession(session(), NOW);
+  assert.equal(empty.progress, 0);
+
+  const half = summarizeSession(
+    session({
+      state: { called: Array.from({ length: 45 }, (_, i) => i + 1), events: [] },
+    }),
+    NOW,
+  );
+  assert.equal(half.progress, 0.5);
+
+  const full = summarizeSession(
+    session({
+      state: { called: Array.from({ length: TOTAL_KEGS }, (_, i) => i + 1), events: [] },
+    }),
+    NOW,
+  );
+  assert.equal(full.progress, 1);
+});
+
+test("summarizeSession: progress never exceeds 1 on a malformed over-long called list", () => {
+  const s = summarizeSession(
+    session({
+      state: { called: Array.from({ length: 120 }, (_, i) => i + 1), events: [] },
+    }),
+    NOW,
+  );
+  assert.equal(s.progress, 1);
 });

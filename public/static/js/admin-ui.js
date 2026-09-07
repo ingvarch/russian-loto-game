@@ -3,8 +3,9 @@
 // Takes the summaries produced by admin-logic.js and paints game cards.
 // No fetching and no state of its own — main-admin.js owns both.
 
+import { TOTAL_KEGS } from "./admin-logic.js";
+
 const LEVEL_NAMES = { 1: "Один ряд", 2: "Два ряда", 3: "Полное лото" };
-const TOTAL_KEGS = 90;
 
 const listEl = document.getElementById("game-list");
 const emptyEl = document.getElementById("empty");
@@ -72,6 +73,16 @@ function renderProgress(summary) {
   return wrap;
 }
 
+// A bar under the count: eight cards read as "how far along" at a glance,
+// which eight bare numbers do not.
+function renderBar(summary) {
+  const track = el("div", "game-bar");
+  const fill = el("div", "game-bar-fill");
+  fill.style.width = `${summary.progress * 100}%`;
+  track.append(fill);
+  return track;
+}
+
 function renderLevels(summary) {
   const wrap = el("div", "game-levels");
   for (const level of [1, 2, 3]) {
@@ -100,6 +111,7 @@ function renderCard(summary) {
     el("div", "game-meta", `начата в ${formatClock(summary.createdAt)}`),
   );
   card.append(renderProgress(summary));
+  card.append(renderBar(summary));
   card.append(renderLevels(summary));
 
   if (summary.pending) {

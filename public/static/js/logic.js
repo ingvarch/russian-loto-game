@@ -11,6 +11,10 @@
 // "Level" of a card = how many of its 3 rows are fully closed (every number
 // in that row has been called). Level ranges 0..3; 3 = полное лото (bingo).
 
+// A loto set is 90 kegs, always. The card range varies per game, the barrel
+// does not.
+export const TOTAL_KEGS = 90;
+
 export function calledSet(calledArray) {
   return new Set(calledArray);
 }
@@ -388,6 +392,13 @@ export function musicPauseActive(state) {
   const mp = state.musicPause;
   if (!mp || mp.done) return false;
   return (state.called || []).includes(mp.number);
+}
+
+// Seed for the pause number when the host has not picked one. The switch is
+// on by default, and an empty number fails validation, so the form opens with
+// a keg already drawn for it.
+export function pickMusicNumber(random = Math.random) {
+  return Math.floor(random() * TOTAL_KEGS) + 1;
 }
 
 // Easter egg trigger. A live call always adds exactly one number per state

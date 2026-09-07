@@ -26,7 +26,9 @@ import {
   nextPendingBatch,
   nextTargetLevel,
   nextTiebreakBatch,
+  pickMusicNumber,
   recentCalled,
+  TOTAL_KEGS,
   resolveLevel,
   rowHits,
   winnersByLevel,
@@ -918,4 +920,18 @@ test("liveEasterEgg: null on uncall", () => {
 
 test("liveEasterEgg: fires again when an egg is re-called after an uncall", () => {
   assert.equal(liveEasterEgg([1, 2], [1, 2, 67], EGGS), 67);
+});
+
+test("pickMusicNumber: stays inside the keg range at both ends of the draw", () => {
+  assert.equal(pickMusicNumber(() => 0), 1);
+  assert.equal(pickMusicNumber(() => 0.9999999), TOTAL_KEGS);
+  assert.equal(pickMusicNumber(() => 0.5), 46);
+});
+
+test("pickMusicNumber: every draw is a whole keg number", () => {
+  for (let i = 0; i < 200; i++) {
+    const n = pickMusicNumber();
+    assert.ok(Number.isInteger(n), `not an integer: ${n}`);
+    assert.ok(n >= 1 && n <= TOTAL_KEGS, `out of range: ${n}`);
+  }
 });

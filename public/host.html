@@ -114,13 +114,24 @@
 
 <div class="modal-backdrop" id="new-game-modal">
   <div class="modal modal-wide">
+    <div class="sheet-grabber"></div>
     <p class="modal-title">Новая игра</p>
     <p class="modal-text">Все отмеченные числа и события будут удалены.</p>
 
     <div class="modal-form">
-      <div class="form-row">
-        <label>Банк (0 — без денег)</label>
-        <input type="number" id="ng-jackpot" min="0" step="1" value="0" inputmode="numeric">
+      <div class="form-group">
+        <label class="group-row" for="ng-jackpot">
+          <span class="group-label">Банк</span>
+          <input type="number" id="ng-jackpot" min="0" step="1" value="0" inputmode="numeric" placeholder="0">
+        </label>
+        <label class="group-row" for="ng-cards">
+          <span class="group-label">Карты в игре</span>
+          <input type="text" id="ng-cards" placeholder="все" inputmode="text">
+        </label>
+        <div class="group-foot">
+          <span class="form-hint">Банк 0 — играем без денег.</span>
+          <span class="form-hint" id="ng-cards-hint"></span>
+        </div>
       </div>
 
       <div class="form-row">
@@ -136,55 +147,60 @@
         <label>Проценты по уровням (сумма = 100)</label>
         <div class="pct-inputs">
           <div class="form-row">
-            <label>одна линия</label>
+            <label for="ng-pct1">одна линия</label>
             <input type="number" id="ng-pct1" min="0" max="100" step="1" value="10" inputmode="numeric">
           </div>
           <div class="form-row">
-            <label>две линии</label>
+            <label for="ng-pct2">две линии</label>
             <input type="number" id="ng-pct2" min="0" max="100" step="1" value="25" inputmode="numeric">
           </div>
           <div class="form-row">
-            <label>полное лото</label>
+            <label for="ng-pct3">полное лото</label>
             <input type="number" id="ng-pct3" min="0" max="100" step="1" value="65" inputmode="numeric">
           </div>
         </div>
       </div>
 
-      <label class="split-row">
-        <input type="checkbox" id="ng-split">
-        <div>
-          <div class="split-label">Делить поровну при ничьих</div>
-          <div class="split-hint">Если выключено — ведущий выбирает победителя вручную.</div>
-        </div>
-      </label>
-
-      <label class="split-row">
-        <input type="checkbox" id="ng-music">
-        <div>
-          <div class="split-label">Музыкальная пауза</div>
-          <div class="split-hint">Пауза сработает, когда выпадет выбранное число.</div>
-        </div>
-      </label>
-
-      <label class="split-row">
-        <input type="checkbox" id="ng-eggs">
-        <div>
-          <div class="split-label">Пасхалки</div>
-          <div class="split-hint">Мем-картинки на экране при особых числах.</div>
-        </div>
-      </label>
-
-      <div class="form-row hidden" id="ng-music-num-row">
-        <label>Число паузы (1–90)</label>
-        <input type="number" id="ng-music-num" min="1" max="90" step="1" inputmode="numeric">
+      <div class="form-group hidden" id="ng-music-num-row">
+        <label class="group-row" for="ng-music-num">
+          <span class="group-label">Число паузы (1–90)</span>
+          <input type="number" id="ng-music-num" min="1" max="90" step="1" inputmode="numeric">
+        </label>
       </div>
 
-      <div class="form-row">
-        <label>Карты в игре</label>
-        <input type="text" id="ng-cards" placeholder="все" inputmode="text"
-               style="font-variant-numeric: tabular-nums;">
-        <div class="form-hint" id="ng-cards-hint"></div>
-      </div>
+      <details class="advanced">
+        <summary>
+          <span>Расширенные настройки</span>
+          <svg class="advanced-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+               aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+        </summary>
+        <div class="form-group advanced-body">
+          <label class="group-row switch-row">
+            <span class="group-text">
+              <span class="split-label">Музыкальная пауза</span>
+              <span class="split-hint">Пауза сработает, когда выпадет выбранное число.</span>
+            </span>
+            <input type="checkbox" id="ng-music" class="switch">
+          </label>
+
+          <label class="group-row switch-row">
+            <span class="group-text">
+              <span class="split-label">Делить поровну при ничьих</span>
+              <span class="split-hint">Если выключено — ведущий выбирает победителя вручную.</span>
+            </span>
+            <input type="checkbox" id="ng-split" class="switch">
+          </label>
+
+          <label class="group-row switch-row">
+            <span class="group-text">
+              <span class="split-label">Пасхалки</span>
+              <span class="split-hint">Мем-картинки на экране при особых числах.</span>
+            </span>
+            <input type="checkbox" id="ng-eggs" class="switch">
+          </label>
+        </div>
+      </details>
 
       <div class="preview hidden" id="ng-preview">
         <div class="preview-title">Предварительная разбивка</div>

@@ -469,8 +469,11 @@ function openNewGameModal() {
   document.getElementById("ng-pct2").value = (current.percentages && current.percentages[1]) || 25;
   document.getElementById("ng-pct3").value = (current.percentages && current.percentages[2]) || 65;
   document.getElementById("ng-split").checked = current.split === true;
-  document.getElementById("ng-music").checked = !!current.musicPause;
-  document.getElementById("ng-music-num").value = current.musicPause ? current.musicPause.number : "";
+  // The pause is on by default; an empty number would fail validation, so a
+  // keg is drawn for it whenever the host has not already picked one.
+  document.getElementById("ng-music").checked = true;
+  document.getElementById("ng-music-num").value =
+      current.musicPause ? current.musicPause.number : logic.pickMusicNumber();
   syncMusicRowVisibility();
   document.getElementById("ng-eggs").checked = current.easterEggs !== false;
   document.getElementById("ng-error").textContent = "";

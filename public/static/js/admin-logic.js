@@ -4,7 +4,9 @@
 // winner rule lives once in logic.js and is shared with the display page.
 // Everything here is a pure function of (row, now) — no DOM, no fetch.
 
-import { hasPendingEvents, winnersByLevel } from "./logic.js";
+import { hasPendingEvents, winnersByLevel, TOTAL_KEGS } from "./logic.js";
+
+export { TOTAL_KEGS };
 
 // A game whose host is mid-draw updates every few seconds. Two minutes of
 // silence means they stepped away, not that the game ended.
@@ -31,6 +33,7 @@ export function summarizeSession(row, now) {
     finished,
     live: !finished && idleFor <= LIVE_WINDOW_MS,
     calledCount: called.length,
+    progress: Math.min(1, called.length / TOTAL_KEGS),
     lastNumber: called.length > 0 ? called[called.length - 1] : null,
     winners: winnersByLevel(events),
     jackpot: typeof state.jackpot === "number" ? state.jackpot : 0,
