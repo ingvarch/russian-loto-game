@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Russian Loto -- Админка</title>
+<title>Russian Loto -- Сессии</title>
 <script src="/static/js/theme-boot.js"></script>
 <link rel="stylesheet" href="/static/css/base.css">
 <link rel="stylesheet" href="/static/css/admin.css">
@@ -11,9 +11,9 @@
 <body>
 
 <header class="admin-header">
-  <h1 class="visually-hidden">Игры</h1>
+  <h1 class="visually-hidden">Сессии</h1>
   <nav class="segmented admin-nav" aria-label="Разделы панели">
-    <a href="/admin" class="active" aria-current="page">Игры</a>
+    <a href="/admin" class="active" aria-current="page">Сессии</a>
     <a href="/admin/stats">Статистика</a>
   </nav>
   <span class="admin-count" id="game-count"></span>
@@ -29,19 +29,19 @@
 <p class="admin-error hidden" id="error" role="alert" aria-live="polite"></p>
 
 <main class="admin-main">
-  <p class="admin-empty hidden" id="empty">Активных игр нет.</p>
+  <p class="admin-empty hidden" id="empty">Активных сессий нет.</p>
   <div class="game-list" id="game-list"></div>
 </main>
 
 <div class="modal-backdrop" id="confirm-delete">
   <div class="modal">
-    <p class="modal-title">Удалить игру <span id="confirm-delete-id"></span>?</p>
+    <p class="modal-title">Удалить сессию <span id="confirm-delete-id"></span>?</p>
     <p class="modal-text">
-      Игра и её статистика будут стёрты без возможности вернуть. Ссылка на
-      сессию перестанет открываться.
+      Ссылка на сессию перестанет открываться. Вернуть нельзя.
     </p>
+    <p class="modal-warning hidden" id="confirm-delete-games"></p>
     <p class="modal-warning hidden" id="confirm-delete-live">
-      Эта игра идёт прямо сейчас. У ведущего и на табло страница перестанет
+      Сессия идёт прямо сейчас. У ведущего и на табло страница перестанет
       работать.
     </p>
     <div class="modal-actions">

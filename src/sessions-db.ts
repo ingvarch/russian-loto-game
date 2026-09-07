@@ -15,6 +15,7 @@ export interface SessionListItem {
   createdAt: number;
   updatedAt: number;
   finishedAt: number | null;
+  finishedGames: number;
   state: unknown;
 }
 
@@ -205,16 +206,21 @@ export async function listSessions(
   db: D1Database,
   opts: { updatedAfter?: number; limit?: number },
 ): Promise<SessionListItem[]> {
-  const where = opts.updatedAfter === undefined ? "" : "WHERE updated_at >= ?";
+  const where = opts.updatedAfter === undefined ? "" : "WHERE s.updated_at >= ?";
   const binds: number[] = [];
   if (opts.updatedAfter !== undefined) binds.push(opts.updatedAfter);
   binds.push(Math.min(opts.limit ?? 100, MAX_LIST));
 
   const result = await db
     .prepare(
-      `SELECT id, created_at, updated_at, finished_at, state_json
-       FROM sessions ${where}
-       ORDER BY updated_at DESC
+      // The count says how much history a delete would take with it: a
+      // session is one URL, but an evening inside it can be several games.
+      `SELECT s.id, s.created_at, s.updated_at, s.finished_at, s.state_json,
+              (SELECT COUNT(*) FROM games g
+                WHERE g.session_id = s.id AND g.finished_at IS NOT NULL)
+                AS finished_games
+       FROM sessions s ${where}
+       ORDER BY s.updated_at DESC
        LIMIT ?`,
     )
     .bind(...binds)
@@ -224,6 +230,7 @@ export async function listSessions(
       updated_at: number;
       finished_at: number | null;
       state_json: string | null;
+      finished_games: number;
     }>();
 
   return result.results.map((r) => ({
@@ -231,6 +238,7 @@ export async function listSessions(
     createdAt: r.created_at,
     updatedAt: r.updated_at,
     finishedAt: r.finished_at,
+    finishedGames: r.finished_games,
     state: parseState(r.state_json),
   }));
 }

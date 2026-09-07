@@ -33,10 +33,26 @@ export function summarizeSession(row, now) {
     finished,
     live: !finished && idleFor <= LIVE_WINDOW_MS,
     calledCount: called.length,
+    // How many games this session played through to the end. A session is
+    // the URL, a game is one round inside it, and the listing has to say so
+    // before the operator deletes an evening's worth by accident.
+    finishedGames:
+      typeof row.finishedGames === "number" ? row.finishedGames : 0,
     progress: Math.min(1, called.length / TOTAL_KEGS),
     lastNumber: called.length > 0 ? called[called.length - 1] : null,
     winners: winnersByLevel(events),
     jackpot: typeof state.jackpot === "number" ? state.jackpot : 0,
     pending: hasPendingEvents({ events }),
   };
+}
+
+// "1 партия", "3 партии", "5 партий". Teens are all genitive plural, past
+// twenty the last digit decides again.
+export function pluralGames(n) {
+  const lastTwo = Math.abs(n) % 100;
+  const last = lastTwo % 10;
+  if (lastTwo >= 11 && lastTwo <= 14) return `${n} партий`;
+  if (last === 1) return `${n} партия`;
+  if (last >= 2 && last <= 4) return `${n} партии`;
+  return `${n} партий`;
 }

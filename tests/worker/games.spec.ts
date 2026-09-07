@@ -126,3 +126,36 @@ describe("games", () => {
     expect(await gamesOf(sessionId)).toHaveLength(0);
   });
 });
+
+// The listing is a list of sessions; the count tells the operator how much
+// history a delete would take with it.
+describe("session listing carries its game count", () => {
+  it("counts the games a session played to the end", async () => {
+    const { sessionId, cookie } = await createSession();
+    await postState(sessionId, cookie, finishedGame(1000, 5000, 11));
+    await postState(sessionId, cookie, finishedGame(2000, 12000, 22));
+    await postState(sessionId, cookie, finishedGame(3000, 30000, 33));
+
+    const res = await SELF.fetch("https://example.com/admin/api/sessions", {
+      headers: { Authorization: `Basic ${btoa("admin:test-password")}` },
+    });
+    const rows = (await res.json()) as { id: string; finishedGames: number }[];
+    expect(rows.find((r) => r.id === sessionId)?.finishedGames).toBe(3);
+  });
+
+  it("does not count a game still in progress", async () => {
+    const { sessionId, cookie } = await createSession();
+    await postState(sessionId, cookie, {
+      startedAt: 4000,
+      jackpot: 1000,
+      called: [7],
+      events: [],
+    });
+
+    const res = await SELF.fetch("https://example.com/admin/api/sessions", {
+      headers: { Authorization: `Basic ${btoa("admin:test-password")}` },
+    });
+    const rows = (await res.json()) as { id: string; finishedGames: number }[];
+    expect(rows.find((r) => r.id === sessionId)?.finishedGames).toBe(0);
+  });
+});

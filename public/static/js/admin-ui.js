@@ -3,7 +3,7 @@
 // Takes the summaries produced by admin-logic.js and paints game cards.
 // No fetching and no state of its own — main-admin.js owns both.
 
-import { TOTAL_KEGS } from "./admin-logic.js";
+import { TOTAL_KEGS, pluralGames } from "./admin-logic.js";
 
 const LEVEL_NAMES = { 1: "Один ряд", 2: "Два ряда", 3: "Полное лото" };
 
@@ -108,7 +108,11 @@ function renderCard(summary) {
   card.append(head);
 
   card.append(
-    el("div", "game-meta", `начата в ${formatClock(summary.createdAt)}`),
+    el(
+      "div",
+      "game-meta",
+      `начата в ${formatClock(summary.createdAt)} · ${pluralGames(summary.finishedGames)}`,
+    ),
   );
   card.append(renderProgress(summary));
   card.append(renderBar(summary));
@@ -137,8 +141,9 @@ function renderCard(summary) {
   const del = el("button", "game-delete");
   del.type = "button";
   del.dataset.session = summary.id;
-  del.setAttribute("aria-label", `Удалить игру ${summary.id}`);
-  del.title = "Удалить игру";
+  del.dataset.games = String(summary.finishedGames);
+  del.setAttribute("aria-label", `Удалить сессию ${summary.id}`);
+  del.title = "Удалить сессию";
   del.innerHTML =
     '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 11v6" /> <path d="M14 11v6" /> <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /> <path d="M3 6h18" /> <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>';
   foot.append(del);

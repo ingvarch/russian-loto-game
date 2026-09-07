@@ -4,7 +4,7 @@
 // listing spans every game, and subscribing to N rooms to render a
 // read-only list would cost far more than a five-second fetch.
 
-import { summarizeSession } from "./admin-logic.js";
+import { summarizeSession, pluralGames } from "./admin-logic.js";
 import { loadPrefs, applyTheme } from "./prefs.js";
 import * as ui from "./admin-ui.js";
 
@@ -52,6 +52,7 @@ const listEl = document.getElementById("game-list");
 const confirmEl = document.getElementById("confirm-delete");
 const confirmIdEl = document.getElementById("confirm-delete-id");
 const confirmLiveEl = document.getElementById("confirm-delete-live");
+const confirmGamesEl = document.getElementById("confirm-delete-games");
 
 let pendingDelete = null;
 
@@ -65,6 +66,13 @@ listEl.addEventListener("click", (ev) => {
   if (btn === null) return;
   pendingDelete = btn.dataset.session;
   confirmIdEl.textContent = pendingDelete;
+  // Deleting takes the session's finished games out of the statistics with
+  // it, and an evening can hide several behind one card.
+  const games = Number(btn.dataset.games) || 0;
+  confirmGamesEl.textContent =
+    `Из статистики уйдёт ${pluralGames(games)}.`;
+  confirmGamesEl.classList.toggle("hidden", games === 0);
+
   const live = btn.closest(".game-card")?.querySelector(".game-status.is-live");
   confirmLiveEl.classList.toggle("hidden", live === null || live === undefined);
   confirmEl.classList.add("open");
@@ -86,7 +94,7 @@ confirmEl.querySelector('[data-action="confirm"]').addEventListener("click", asy
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     ui.clearError();
   } catch (e) {
-    ui.showError(`Не удалось удалить игру ${id}: ${e.message}`);
+    ui.showError(`Не удалось удалить сессию ${id}: ${e.message}`);
   }
   refresh();
 });
