@@ -19,6 +19,7 @@ import {
   closeCountsByLevel,
   computePayouts,
   formatElapsed,
+  formatSeq,
   hasPendingEvents,
   isCardClose,
   levelOf,
@@ -957,4 +958,14 @@ test("formatElapsed: a clock that ran backwards reads as zero, never negative", 
 
 test("formatElapsed: sub-second remainders truncate rather than round up", () => {
   assert.equal(formatElapsed(1_999), "0:01");
+});
+
+test("formatSeq: card numbers read the same everywhere, padded to three digits", () => {
+  assert.equal(formatSeq(4), "#004");
+  assert.equal(formatSeq(17), "#017");
+  assert.equal(formatSeq(147), "#147");
+});
+
+test("formatSeq: a number wider than the pad is left as it is", () => {
+  assert.equal(formatSeq(1234), "#1234");
 });

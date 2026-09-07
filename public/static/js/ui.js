@@ -188,7 +188,7 @@ function renderWinners() {
         if (i > 0) seqEl.appendChild(document.createTextNode(", "));
         const item = document.createElement("span");
         item.className = "winner-seq-item";
-        item.textContent = "№ " + c.seq;
+        item.textContent = logic.formatSeq(c.seq);
         item.addEventListener("click", () => openSheet(c.cid));
         seqEl.appendChild(item);
       });
@@ -258,7 +258,7 @@ function renderLog() {
     else if (status === "absent") suffix = " · не в игре";
     row.innerHTML =
       '<span class="ts">' + e.ts + '</span>' +
-      '<span class="seq">#' + String(e.seq).padStart(3, "0") + '</span>' +
+      '<span class="seq">' + logic.formatSeq(e.seq) + '</span>' +
       '<span class="level">' + levelText + suffix + '</span>';
     row.addEventListener("click", () => openSheet(e.cid));
     if (isReopenable(e, calledCount)) {
@@ -327,7 +327,7 @@ function renderClose() {
   for (const card of close) {
     const chip = document.createElement("span");
     chip.className = "close-chip";
-    chip.textContent = "#" + String(card.seq).padStart(3, "0");
+    chip.textContent = logic.formatSeq(card.seq);
     chip.addEventListener("click", () => openSheet(card.cid));
     list.appendChild(chip);
   }
@@ -378,7 +378,7 @@ function renderPayoutRow(level, label, info) {
     info.winners.forEach((card) => {
       const chip = document.createElement("span");
       chip.className = "chip-sm";
-      chip.textContent = "#" + String(card.seq).padStart(3, "0");
+      chip.textContent = logic.formatSeq(card.seq);
       chip.addEventListener("click", () => openSheet(card.cid));
       winnersEl.appendChild(chip);
     });
@@ -396,7 +396,7 @@ function renderPayoutRow(level, label, info) {
       note.style.fontSize = "11px";
       note.style.color = "var(--text-dim)";
       note.style.marginTop = "2px";
-      note.textContent = "#" + String(info.winners[0].seq).padStart(3, "0") + " +" + info.remainder;
+      note.textContent = logic.formatSeq(info.winners[0].seq) + " +" + info.remainder;
       amountEl.appendChild(note);
     }
   }
@@ -420,7 +420,7 @@ function askUncall(n) {
   if (locked.has(n)) {
     const where = locked
       .get(n)
-      .map((w) => "#" + String(w.seq).padStart(3, "0") + " (" + LEVEL_LABELS[w.level] + ")")
+      .map((w) => logic.formatSeq(w.seq) + " (" + LEVEL_LABELS[w.level] + ")")
       .join(", ");
     warnEl.textContent = "Это число закрывает выигрышную линию: " + where + ". Отжатие отменит победу.";
     warnEl.classList.remove("hidden");
@@ -488,8 +488,8 @@ function openNewGameModal() {
   const minSeq = Math.min(...allSeqs);
   const maxSeq = Math.max(...allSeqs);
   document.getElementById("ng-cards-hint").textContent =
-      "Загружено: №" + String(minSeq).padStart(3, "0") +
-      "–№" + String(maxSeq).padStart(3, "0") +
+      "Загружено: " + logic.formatSeq(minSeq) +
+      "–" + logic.formatSeq(maxSeq) +
       ", всего " + CARDS.length;
   syncPresetActive();
   updateNewGamePreview();
@@ -708,7 +708,7 @@ function maybeShowConfirmation() {
     label.className = "confirm-candidate-label";
     const seqSpan = document.createElement("span");
     seqSpan.className = "confirm-candidate-seq";
-    seqSpan.textContent = "#" + String(card.seq).padStart(3, "0");
+    seqSpan.textContent = logic.formatSeq(card.seq);
     seqSpan.addEventListener("click", () => openSheet(card.cid));
     label.appendChild(seqSpan);
     const cidSpan = document.createElement("span");
@@ -829,7 +829,7 @@ function maybeShowTiebreak() {
     label.className = "confirm-candidate-label";
     const seqSpan = document.createElement("span");
     seqSpan.className = "confirm-candidate-seq";
-    seqSpan.textContent = "#" + String(card.seq).padStart(3, "0");
+    seqSpan.textContent = logic.formatSeq(card.seq);
     seqSpan.addEventListener("click", () => openSheet(card.cid));
     label.appendChild(seqSpan);
     const cidSpan = document.createElement("span");
@@ -870,7 +870,7 @@ function resolveTiebreak(level, callCount, cid) {
 // ---- Win overlay ---------------------------------------------------------
 
 function showWin(card) {
-  document.getElementById("win-seq").textContent = "#" + String(card.seq).padStart(3, "0");
+  document.getElementById("win-seq").textContent = logic.formatSeq(card.seq);
   document.getElementById("win-cid").textContent = card.cid;
 
   const amountEl = document.getElementById("win-amount");
@@ -944,7 +944,7 @@ function openSheet(cid) {
   const closed = card.numbers.filter((n) => called.has(n)).length;
   const level = current.cardLevel[cid] || 0;
 
-  document.getElementById("sheet-seq").textContent = "#" + String(card.seq).padStart(3, "0");
+  document.getElementById("sheet-seq").textContent = logic.formatSeq(card.seq);
   document.getElementById("sheet-cid").textContent = card.cid;
   document.getElementById("sheet-stars").textContent = renderStars(level);
   document.getElementById("sheet-progress").textContent = closed + "/15";

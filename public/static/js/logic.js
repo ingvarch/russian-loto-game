@@ -15,6 +15,13 @@
 // does not.
 export const TOTAL_KEGS = 90;
 
+// Cards are referred to by printed number everywhere the host looks: the
+// event log, the payout chips, the confirmation modals, the winners list.
+// One spelling, so "#004" never turns up as "4" one panel over.
+export function formatSeq(seq) {
+  return "#" + String(seq).padStart(3, "0");
+}
+
 export function calledSet(calledArray) {
   return new Set(calledArray);
 }
