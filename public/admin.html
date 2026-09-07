@@ -11,16 +11,17 @@
 <body>
 
 <header class="admin-header">
-  <div class="admin-title">
-    <h1>Игры</h1>
-    <span class="admin-count" id="game-count"></span>
-  </div>
+  <h1 class="visually-hidden">Игры</h1>
+  <nav class="segmented admin-nav" aria-label="Разделы панели">
+    <a href="/admin" class="active" aria-current="page">Игры</a>
+    <a href="/admin/stats">Статистика</a>
+  </nav>
+  <span class="admin-count" id="game-count"></span>
   <div class="admin-actions">
     <label class="toggle">
       <span>Только активные</span>
       <input type="checkbox" id="active-only" class="switch" checked>
     </label>
-    <a class="refresh-btn" href="/admin/stats">Статистика</a>
     <button type="button" class="refresh-btn" id="refresh-btn">Обновить</button>
   </div>
 </header>

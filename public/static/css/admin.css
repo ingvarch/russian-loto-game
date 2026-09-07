@@ -31,11 +31,14 @@
   border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
   position: sticky; top: 0; z-index: 5;
 }
-.admin-title { display: flex; align-items: baseline; gap: 10px; }
-.admin-title h1 {
-  font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin: 0;
-}
+/* The panel's own navigation. Sized to its labels rather than stretched:
+   it switches between two screens, it does not filter the page. */
+.admin-nav { grid-auto-columns: auto; }
+.admin-nav a { padding: 8px 16px; }
+
+/* Pushes the actions to the far edge, whatever the count says. */
 .admin-count {
+  margin-right: auto;
   font-size: 13px; color: var(--text-dim);
   font-variant-numeric: tabular-nums;
 }
