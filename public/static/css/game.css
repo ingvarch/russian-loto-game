@@ -436,6 +436,17 @@ header {
 .info[open] .info-btn { border-color: var(--accent); color: var(--accent); }
 .info[open] > summary { margin-bottom: 8px; }
 
+/* Same disclosure at title scale: the modal heading carries the badge and
+   folds the "this wipes the board" note away until asked for. */
+.info-title > summary {
+  gap: 8px;
+  font-size: 17px; font-weight: 600;
+  text-transform: none; letter-spacing: 0;
+  color: var(--text);
+}
+.info-title .info-btn { width: 18px; height: 18px; font-size: 11px; }
+.info-title .modal-text { margin: 0; }
+
 /* Grouped inset list: rows share one rounded container, split by hairlines.
    Value sits at the trailing edge of its own row, label at the leading one. */
 .form-group {

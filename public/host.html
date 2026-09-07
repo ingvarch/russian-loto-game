@@ -115,8 +115,16 @@
 <div class="modal-backdrop" id="new-game-modal">
   <div class="modal modal-wide">
     <div class="sheet-grabber"></div>
-    <p class="modal-title">Новая игра</p>
-    <p class="modal-text">Все отмеченные числа и события будут удалены.</p>
+    <details class="info info-title">
+      <summary>
+        <span>Новая игра</span>
+        <span class="info-btn" aria-hidden="true">i</span>
+      </summary>
+      <p class="modal-text">
+        Текущая игра закроется. Выпавшие числа, события и победители не
+        сохранятся.
+      </p>
+    </details>
 
     <div class="modal-form">
       <div class="form-group">
