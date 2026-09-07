@@ -1,11 +1,11 @@
 // Admin panel: everything under /admin, behind HTTP Basic.
 //
-// Read-only for now -- the panel lists games, it does not run them. The
-// data comes from the D1 mirror rather than from the Durable Objects, so
-// one query answers the whole listing instead of a fan-out to N rooms.
+// The panel lists games and can delete them; it does not run them. The
+// listing comes from the D1 mirror rather than from the Durable Objects, so
+// one query answers the whole thing instead of a fan-out to N rooms.
 
 import { basicAuthChallenge, checkBasicAuth } from "./auth.js";
-import { listSessions } from "./sessions-db.js";
+import { deleteSession, listSessions, sessionExists } from "./sessions-db.js";
 import type { Env } from "./types.js";
 
 // A game the host walked away from is still a row in D1 (sessions are
@@ -26,8 +26,16 @@ export async function handleAdmin(request: Request, env: Env): Promise<Response>
   if (path === "/admin/api/sessions") {
     return handleSessionsList(request, env);
   }
+  const item = SESSION_ITEM_RE.exec(path);
+  if (item !== null) {
+    return handleSessionItem(request, env, item[1]!);
+  }
   return new Response("not found", { status: 404 });
 }
+
+// Session ids are short and URL-safe; anything else is not one of ours and
+// never reaches the database.
+const SESSION_ITEM_RE = /^\/admin\/api\/sessions\/([A-Za-z0-9_-]{1,64})$/;
 
 // The shell lives in the assets bucket like every other page. Fetching it
 // through the ASSETS binding does not re-enter the router, so listing
@@ -64,4 +72,30 @@ async function handleSessionsList(request: Request, env: Env): Promise<Response>
       "Cache-Control": "no-store",
     },
   });
+}
+
+// Deleting reaches both stores, room first. If the row delete then failed,
+// the game is dead but still listed and the operator can press delete again;
+// the reverse order would hide a session that is still very much alive.
+async function handleSessionItem(
+  request: Request,
+  env: Env,
+  sessionId: string,
+): Promise<Response> {
+  if (request.method !== "DELETE") {
+    return new Response("method not allowed", {
+      status: 405,
+      headers: { Allow: "DELETE" },
+    });
+  }
+
+  if (!(await sessionExists(env.DB, sessionId))) {
+    return new Response("not found", { status: 404 });
+  }
+
+  const stub = env.GAME_ROOM.get(env.GAME_ROOM.idFromName(sessionId));
+  await stub.destroy();
+  await deleteSession(env.DB, sessionId);
+
+  return new Response(null, { status: 204 });
 }

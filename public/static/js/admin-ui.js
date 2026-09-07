@@ -131,6 +131,24 @@ function renderCard(summary) {
   link.target = "_blank";
   link.rel = "noopener";
   foot.append(link);
+
+  // The button only announces intent: main-admin.js delegates the click and
+  // owns the confirmation, so this module stays a renderer.
+  const del = el("button", "game-delete");
+  del.type = "button";
+  del.dataset.session = summary.id;
+  del.setAttribute("aria-label", `Удалить игру ${summary.id}`);
+  del.title = "Удалить игру";
+  del.innerHTML =
+    '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" ' +
+    'stroke="currentColor" stroke-width="1.7" stroke-linecap="round" ' +
+    'stroke-linejoin="round" aria-hidden="true">' +
+    '<path d="M4 7h16"></path>' +
+    '<path d="M9.5 7V5.2A1.2 1.2 0 0 1 10.7 4h2.6a1.2 1.2 0 0 1 1.2 1.2V7"></path>' +
+    '<path d="M6.5 7l.8 12a1.6 1.6 0 0 0 1.6 1.5h6.2a1.6 1.6 0 0 0 1.6-1.5l.8-12"></path>' +
+    '<path d="M10.2 10.8v6M13.8 10.8v6"></path>' +
+    "</svg>";
+  foot.append(del);
   card.append(foot);
 
   return card;

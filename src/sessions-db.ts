@@ -204,3 +204,29 @@ function parseState(raw: string | null): unknown {
     return null;
   }
 }
+
+export async function sessionExists(
+  db: D1Database,
+  id: string,
+): Promise<boolean> {
+  const row = await db
+    .prepare("SELECT id FROM sessions WHERE id = ?")
+    .bind(id)
+    .first<{ id: string }>();
+  return row !== null;
+}
+
+// Unlike the mirror writes this is not advisory: an operator who pressed
+// delete has to learn if it failed, so nothing here is swallowed.
+//
+// The children go explicitly rather than through ON DELETE CASCADE, because
+// foreign-key enforcement is a per-connection pragma and a silently skipped
+// cascade would leave orphan statistics behind for a game that no longer
+// exists.
+export async function deleteSession(db: D1Database, id: string): Promise<void> {
+  await db.batch([
+    db.prepare("DELETE FROM draws WHERE session_id = ?").bind(id),
+    db.prepare("DELETE FROM wins WHERE session_id = ?").bind(id),
+    db.prepare("DELETE FROM sessions WHERE id = ?").bind(id),
+  ]);
+}

@@ -31,6 +31,24 @@
   <div class="game-list" id="game-list"></div>
 </main>
 
+<div class="modal-backdrop" id="confirm-delete">
+  <div class="modal">
+    <p class="modal-title">Удалить игру <span id="confirm-delete-id"></span>?</p>
+    <p class="modal-text">
+      Игра и её статистика будут стёрты без возможности вернуть. Ссылка на
+      сессию перестанет открываться.
+    </p>
+    <p class="modal-warning hidden" id="confirm-delete-live">
+      Эта игра идёт прямо сейчас. У ведущего и на табло страница перестанет
+      работать.
+    </p>
+    <div class="modal-actions">
+      <button type="button" class="btn-cancel" data-action="cancel">Отмена</button>
+      <button type="button" class="btn-danger" data-action="confirm">Удалить</button>
+    </div>
+  </div>
+</div>
+
 <script type="module" src="/static/js/main-admin.js"></script>
 
 </body>

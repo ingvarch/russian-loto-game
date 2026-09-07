@@ -113,6 +113,7 @@ body {
 }
 .btn-cancel { background: var(--border); color: var(--text); }
 .btn-confirm { background: var(--accent); color: var(--accent-text); }
+.btn-danger { background: var(--level3); color: white; }
 
 /* Share-display modal: QR + URL */
 .qr-wrap {

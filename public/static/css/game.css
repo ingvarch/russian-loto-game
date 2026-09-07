@@ -448,7 +448,6 @@ header {
   padding: 10px 12px; margin: 0 0 16px;
 }
 .modal-warning.hidden { display: none; }
-.btn-danger { background: var(--level3); color: white; }
 
 /* New-game form modal -- bigger than confirm modals to fit the form */
 .modal-form { display: flex; flex-direction: column; gap: 16px; margin: 12px 0 18px; }

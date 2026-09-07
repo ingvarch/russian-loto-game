@@ -43,6 +43,54 @@ function stopPolling() {
   timer = null;
 }
 
+// ---- Deleting a game -----------------------------------------------------
+//
+// Irreversible, so it goes through a dialog that names the game and says
+// plainly when the game is still being played.
+
+const listEl = document.getElementById("game-list");
+const confirmEl = document.getElementById("confirm-delete");
+const confirmIdEl = document.getElementById("confirm-delete-id");
+const confirmLiveEl = document.getElementById("confirm-delete-live");
+
+let pendingDelete = null;
+
+function closeConfirm() {
+  confirmEl.classList.remove("open");
+  pendingDelete = null;
+}
+
+listEl.addEventListener("click", (ev) => {
+  const btn = ev.target.closest(".game-delete");
+  if (btn === null) return;
+  pendingDelete = btn.dataset.session;
+  confirmIdEl.textContent = pendingDelete;
+  const live = btn.closest(".game-card")?.querySelector(".game-status.is-live");
+  confirmLiveEl.classList.toggle("hidden", live === null || live === undefined);
+  confirmEl.classList.add("open");
+});
+
+confirmEl.querySelector('[data-action="cancel"]').addEventListener("click", closeConfirm);
+confirmEl.addEventListener("click", (ev) => {
+  if (ev.target === confirmEl) closeConfirm();
+});
+
+confirmEl.querySelector('[data-action="confirm"]').addEventListener("click", async () => {
+  const id = pendingDelete;
+  if (id === null) return;
+  closeConfirm();
+  try {
+    const res = await fetch(`/admin/api/sessions/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    ui.clearError();
+  } catch (e) {
+    ui.showError(`Не удалось удалить игру ${id}: ${e.message}`);
+  }
+  refresh();
+});
+
 activeOnlyEl.addEventListener("change", refresh);
 refreshEl.addEventListener("click", refresh);
 

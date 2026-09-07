@@ -162,3 +162,107 @@ describe("GET /admin/api/sessions", () => {
     ).toBe(404);
   });
 });
+
+// Deleting a game is the one write the panel can make, so it is guarded the
+// same way the listing is and has to reach both stores: the D1 mirror and
+// the Durable Object that actually holds the game. Removing only the row
+// would leave the session playable, and the next state POST would mirror it
+// straight back.
+describe("DELETE /admin/api/sessions/<id>", () => {
+  async function pushState(sessionId: string, cookie: string): Promise<void> {
+    const res = await SELF.fetch(
+      `https://example.com/s/${sessionId}/api/state`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Cookie: cookie },
+        body: JSON.stringify({ called: [7], events: [] }),
+      },
+    );
+    expect(res.status).toBe(200);
+  }
+
+  function del(sessionId: string, auth: string | null = AUTH): Promise<Response> {
+    return SELF.fetch(`https://example.com/admin/api/sessions/${sessionId}`, {
+      method: "DELETE",
+      ...(auth === null ? {} : { headers: { Authorization: auth } }),
+    });
+  }
+
+  it("challenges an unauthenticated delete", async () => {
+    const { sessionId, cookie } = await createGame();
+    await pushState(sessionId, cookie);
+
+    const res = await del(sessionId, null);
+    expect(res.status).toBe(401);
+
+    const still = await listAdmin();
+    expect(still.some((s) => s.id === sessionId)).toBe(true);
+  });
+
+  it("rejects a wrong password", async () => {
+    const { sessionId, cookie } = await createGame();
+    await pushState(sessionId, cookie);
+    expect((await del(sessionId, WRONG)).status).toBe(401);
+  });
+
+  it("drops the game from the listing", async () => {
+    const { sessionId, cookie } = await createGame();
+    await pushState(sessionId, cookie);
+    expect((await listAdmin()).some((s) => s.id === sessionId)).toBe(true);
+
+    const res = await del(sessionId);
+    expect(res.status).toBe(204);
+
+    expect((await listAdmin()).some((s) => s.id === sessionId)).toBe(false);
+  });
+
+  it("wipes the durable object, so the session stops answering", async () => {
+    const { sessionId, cookie } = await createGame();
+    await pushState(sessionId, cookie);
+    expect((await SELF.fetch(`https://example.com/s/${sessionId}/`)).status).toBe(200);
+
+    expect((await del(sessionId)).status).toBe(204);
+
+    expect((await SELF.fetch(`https://example.com/s/${sessionId}/`)).status).toBe(404);
+    expect(
+      (await SELF.fetch(`https://example.com/s/${sessionId}/display`)).status,
+    ).toBe(404);
+  });
+
+  it("takes the statistics rows with it", async () => {
+    const { sessionId, cookie } = await createGame();
+    await pushState(sessionId, cookie);
+    await env.DB.prepare(
+      "INSERT INTO draws (session_id, call_index, number) VALUES (?, 0, 7)",
+    ).bind(sessionId).run();
+    await env.DB.prepare(
+      "INSERT INTO wins (session_id, level, cid, seq, call_count) VALUES (?, 1, 'abc', 4, 21)",
+    ).bind(sessionId).run();
+
+    expect((await del(sessionId)).status).toBe(204);
+
+    const draws = await env.DB.prepare(
+      "SELECT COUNT(*) AS n FROM draws WHERE session_id = ?",
+    ).bind(sessionId).first<{ n: number }>();
+    const wins = await env.DB.prepare(
+      "SELECT COUNT(*) AS n FROM wins WHERE session_id = ?",
+    ).bind(sessionId).first<{ n: number }>();
+    expect(draws?.n).toBe(0);
+    expect(wins?.n).toBe(0);
+  });
+
+  it("reports an unknown game rather than pretending to delete it", async () => {
+    expect((await del("NOSUCHGAME")).status).toBe(404);
+  });
+
+  it("refuses a method the item route does not offer", async () => {
+    const { sessionId, cookie } = await createGame();
+    await pushState(sessionId, cookie);
+    const res = await SELF.fetch(
+      `https://example.com/admin/api/sessions/${sessionId}`,
+      { method: "GET", headers: { Authorization: AUTH } },
+    );
+    expect(res.status).toBe(405);
+    expect(res.headers.get("Allow")).toBe("DELETE");
+  });
+});

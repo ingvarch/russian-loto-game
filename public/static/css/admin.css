@@ -217,6 +217,28 @@
 }
 .game-link:active { opacity: 0.6; }
 
+/* Destructive, so it stays quiet until pointed at rather than competing
+   with the link beside it. */
+.game-delete {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; margin: -4px -4px -4px 0; padding: 0;
+  background: transparent; border: none; border-radius: 8px;
+  color: var(--text-dim);
+  cursor: pointer;
+  -webkit-appearance: none; appearance: none;
+}
+.game-delete:hover { color: var(--level3); }
+.game-delete:active { background: color-mix(in srgb, var(--level3) 14%, transparent); }
+
+.modal-warning {
+  font-size: 14px; line-height: 1.4;
+  color: var(--level3); font-weight: 600;
+  background: color-mix(in srgb, var(--level3) 12%, var(--surface));
+  border: 1px solid var(--level3); border-radius: 10px;
+  padding: 10px 12px; margin: 0 0 16px;
+}
+.modal-warning.hidden { display: none; }
+
 /* A pending crossing blocks the grid: the host cannot call another
  * number until they confirm or dismiss it. Worth shouting about. */
 .game-pending {

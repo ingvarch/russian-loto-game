@@ -104,6 +104,18 @@ export class GameRoom extends DurableObject<Env> {
     this.#broadcast();
   }
 
+  // Deleting a game from the operator panel has to reach the room itself.
+  // The D1 row is only a mirror: drop it alone and the session keeps
+  // playing, then re-mirrors itself on the very next state POST. After this
+  // the room reads as uninitialised, so every session-scoped route 404s.
+  async destroy(): Promise<void> {
+    await this.ctx.storage.deleteAll();
+    this.#ownerToken = null;
+    this.#state = null;
+    this.#cards = [];
+    this.#closeSubscribers();
+  }
+
   // ---- HTTP (SSE only) ---------------------------------------------------
 
   override async fetch(request: Request): Promise<Response> {
@@ -179,6 +191,21 @@ export class GameRoom extends DurableObject<Env> {
       // into the void.
       if (this.#subscribers.size === 0) this.#stopHeartbeat();
     }, HEARTBEAT_MS);
+  }
+
+  // Ends every open SSE stream. Clients see the stream close and reconnect,
+  // which now meets a 404 -- the honest answer for a game that is gone.
+  #closeSubscribers(): void {
+    for (const sub of this.#subscribers) {
+      sub.alive = false;
+      try {
+        sub.controller.close();
+      } catch {
+        // Already torn down by the consumer; nothing to close.
+      }
+    }
+    this.#subscribers.clear();
+    this.#stopHeartbeat();
   }
 
   #stopHeartbeat(): void {
