@@ -6,6 +6,8 @@
 
 import { basicAuthChallenge, checkBasicAuth } from "./auth.js";
 import { deleteSession, listSessions, sessionExists } from "./sessions-db.js";
+import { readStats } from "./stats-db.js";
+import { DEFAULT_PERIOD, isPeriod } from "../public/static/js/stats-logic.js";
 import type { Env } from "./types.js";
 
 // A game the host walked away from is still a row in D1 (sessions are
@@ -23,8 +25,17 @@ export async function handleAdmin(request: Request, env: Env): Promise<Response>
   if (path === "/admin" || path === "/admin/" || path === "/admin.html") {
     return serveShell(request, env);
   }
+  // The shell lives under /admin/ so run_worker_first already covers it:
+  // a file at the site root would be served straight off the assets binding,
+  // password and all bypassed.
+  if (path === "/admin/stats" || path === "/admin/stats/") {
+    return serveShell(request, env, "/admin/stats.html");
+  }
   if (path === "/admin/api/sessions") {
     return handleSessionsList(request, env);
+  }
+  if (path === "/admin/api/stats") {
+    return handleStats(request, env);
   }
   const item = SESSION_ITEM_RE.exec(path);
   if (item !== null) {
@@ -40,9 +51,13 @@ const SESSION_ITEM_RE = /^\/admin\/api\/sessions\/([A-Za-z0-9_-]{1,64})$/;
 // The shell lives in the assets bucket like every other page. Fetching it
 // through the ASSETS binding does not re-enter the router, so listing
 // /admin.html under run_worker_first cannot loop.
-async function serveShell(request: Request, env: Env): Promise<Response> {
+async function serveShell(
+  request: Request,
+  env: Env,
+  assetPath = "/admin.html",
+): Promise<Response> {
   const url = new URL(request.url);
-  url.pathname = "/admin.html";
+  url.pathname = assetPath;
   const res = await env.ASSETS.fetch(new Request(url, { method: "GET" }));
   if (!res.ok) {
     return new Response("admin shell missing", { status: 500 });
@@ -98,4 +113,24 @@ async function handleSessionItem(
   await deleteSession(env.DB, sessionId);
 
   return new Response(null, { status: 204 });
+}
+
+async function handleStats(request: Request, env: Env): Promise<Response> {
+  if (request.method !== "GET") {
+    return new Response("method not allowed", {
+      status: 405,
+      headers: { Allow: "GET" },
+    });
+  }
+  const asked = new URL(request.url).searchParams.get("period");
+  const period = isPeriod(asked) ? asked! : DEFAULT_PERIOD;
+
+  const stats = await readStats(env.DB, period, Date.now());
+  return new Response(JSON.stringify(stats), {
+    status: 200,
+    headers: {
+      "Content-Type": "application/json",
+      "Cache-Control": "no-store",
+    },
+  });
 }

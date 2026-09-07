@@ -82,14 +82,14 @@ describe("D1 mirror", () => {
     await postState(sessionId, cookie, finishedState());
 
     const draws = await env.DB.prepare(
-      "SELECT COUNT(*) AS n FROM draws WHERE session_id = ?",
+      "SELECT COUNT(*) AS n FROM draws WHERE game_id IN (SELECT id FROM games WHERE session_id = ?)",
     )
       .bind(sessionId)
       .first<{ n: number }>();
     expect(draws!.n).toBe(4);
 
     const wins = await env.DB.prepare(
-      "SELECT COUNT(*) AS n FROM wins WHERE session_id = ?",
+      "SELECT COUNT(*) AS n FROM wins WHERE game_id IN (SELECT id FROM games WHERE session_id = ?)",
     )
       .bind(sessionId)
       .first<{ n: number }>();

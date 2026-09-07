@@ -232,21 +232,22 @@ describe("DELETE /admin/api/sessions/<id>", () => {
   it("takes the statistics rows with it", async () => {
     const { sessionId, cookie } = await createGame();
     await pushState(sessionId, cookie);
+    const gameId = `${sessionId}:legacy`;
     await env.DB.prepare(
-      "INSERT INTO draws (session_id, call_index, number) VALUES (?, 0, 7)",
-    ).bind(sessionId).run();
+      "INSERT INTO draws (game_id, call_index, number) VALUES (?, 0, 7)",
+    ).bind(gameId).run();
     await env.DB.prepare(
-      "INSERT INTO wins (session_id, level, cid, seq, call_count) VALUES (?, 1, 'abc', 4, 21)",
-    ).bind(sessionId).run();
+      "INSERT INTO wins (game_id, level, cid, seq, call_count) VALUES (?, 1, 'abc', 4, 21)",
+    ).bind(gameId).run();
 
     expect((await del(sessionId)).status).toBe(204);
 
     const draws = await env.DB.prepare(
-      "SELECT COUNT(*) AS n FROM draws WHERE session_id = ?",
-    ).bind(sessionId).first<{ n: number }>();
+      "SELECT COUNT(*) AS n FROM draws WHERE game_id = ?",
+    ).bind(gameId).first<{ n: number }>();
     const wins = await env.DB.prepare(
-      "SELECT COUNT(*) AS n FROM wins WHERE session_id = ?",
-    ).bind(sessionId).first<{ n: number }>();
+      "SELECT COUNT(*) AS n FROM wins WHERE game_id = ?",
+    ).bind(gameId).first<{ n: number }>();
     expect(draws?.n).toBe(0);
     expect(wins?.n).toBe(0);
   });

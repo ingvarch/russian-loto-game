@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Russian Loto -- Статистика</title>
+<script src="/static/js/theme-boot.js"></script>
+<link rel="stylesheet" href="/static/css/base.css">
+<link rel="stylesheet" href="/static/css/admin.css">
+</head>
+<body>
+
+<header class="admin-header">
+  <div class="admin-title">
+    <h1>Статистика</h1>
+    <span class="admin-count" id="stats-range"></span>
+  </div>
+  <div class="admin-actions">
+    <a class="refresh-btn" href="/admin">К играм</a>
+  </div>
+</header>
+
+<p class="admin-error hidden" id="error" role="alert" aria-live="polite"></p>
+
+<main class="admin-main">
+  <div class="segmented" id="period-choice">
+    <button type="button" data-period="month">Месяц</button>
+    <button type="button" data-period="3m">3 месяца</button>
+    <button type="button" data-period="6m">6 месяцев</button>
+    <button type="button" data-period="year">Год</button>
+    <button type="button" data-period="all">Всё время</button>
+  </div>
+
+  <p class="admin-empty hidden" id="empty">
+    За этот период нет доигранных партий.
+  </p>
+
+  <div id="stats-body">
+    <section class="stat-tiles" id="tiles"></section>
+
+    <section class="stat-card">
+      <div class="stat-card-head">
+        <span class="section-label">Числа</span>
+        <span class="stat-note">как часто выпадало за период</span>
+      </div>
+      <div class="number-heat" id="number-heat"></div>
+      <div class="hot-cold" id="hot-cold"></div>
+    </section>
+
+    <section class="stat-card">
+      <div class="stat-card-head">
+        <span class="section-label">Карточки-победители</span>
+        <span class="stat-note">по числу выигрышей</span>
+      </div>
+      <div class="winner-table" id="winner-table"></div>
+    </section>
+  </div>
+</main>
+
+<script type="module" src="/static/js/main-stats.js"></script>
+
+</body>
+</html>

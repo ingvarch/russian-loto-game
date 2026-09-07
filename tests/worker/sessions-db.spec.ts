@@ -33,7 +33,7 @@ function finishedState() {
 
 async function countRows(table: string, sessionId: string): Promise<number> {
   const row = await env.DB.prepare(
-    `SELECT COUNT(*) AS n FROM ${table} WHERE session_id = ?`,
+    `SELECT COUNT(*) AS n FROM ${table} WHERE game_id IN (SELECT id FROM games WHERE session_id = ?)`,
   )
     .bind(sessionId)
     .first<{ n: number }>();
@@ -176,7 +176,7 @@ describe("statistics materialisation", () => {
     await recordState(env.DB, "DONE", finishedState(), 2000);
 
     const draws = await env.DB.prepare(
-      "SELECT call_index, number FROM draws WHERE session_id = ? ORDER BY call_index",
+      "SELECT d.call_index, d.number FROM draws d JOIN games g ON g.id = d.game_id WHERE g.session_id = ? ORDER BY d.call_index",
     )
       .bind("DONE")
       .all<{ call_index: number; number: number }>();
@@ -188,7 +188,7 @@ describe("statistics materialisation", () => {
     ]);
 
     const wins = await env.DB.prepare(
-      "SELECT level, cid, seq, call_count FROM wins WHERE session_id = ? ORDER BY level",
+      "SELECT w.level, w.cid, w.seq, w.call_count FROM wins w JOIN games g ON g.id = w.game_id WHERE g.session_id = ? ORDER BY w.level",
     )
       .bind("DONE")
       .all<{ level: number; cid: string; seq: number; call_count: number }>();

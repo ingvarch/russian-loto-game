@@ -259,3 +259,107 @@
 @media (max-width: 420px) {
   .admin-actions { width: 100%; justify-content: space-between; }
 }
+
+/* ---- Statistics page ---------------------------------------------------
+ *
+ * Loaded from the same stylesheet as the listing so the header, cards and
+ * error bar stay identical between the two admin screens.
+ */
+
+.admin-main > .segmented { margin-bottom: 20px; }
+
+.section-label {
+  font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--text-dim);
+}
+
+.stat-note { font-size: 12px; color: var(--text-dim); }
+
+.stat-tiles {
+  display: grid; gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  margin-bottom: 20px;
+}
+
+.stat-tile {
+  background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  border-radius: 16px;
+  padding: 14px 15px;
+  box-shadow: var(--card-elev);
+}
+.stat-tile-label {
+  font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--text-dim);
+}
+.stat-tile-value {
+  font-size: 26px; font-weight: 700; letter-spacing: -0.02em;
+  margin-top: 6px; line-height: 1.1;
+}
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  border-radius: 18px;
+  padding: 16px;
+  box-shadow: var(--card-elev);
+  margin-bottom: 20px;
+}
+.stat-card-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 12px; margin-bottom: 14px;
+}
+
+/* One cell per keg, shaded by how often it came up relative to the busiest
+   number of the period. An untouched number keeps its cell so a gap reads
+   as "never drawn" instead of as a missing row. */
+.number-heat {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(44px, 1fr));
+  gap: 5px;
+}
+.heat-cell {
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  padding: 6px 2px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  background: color-mix(in srgb, var(--accent) calc(var(--heat) * 70%), var(--bg));
+}
+.heat-number { font-size: 13px; font-weight: 600; }
+.heat-count { font-size: 11px; color: var(--text-dim); }
+
+.hot-cold {
+  display: grid; gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  margin-top: 16px;
+}
+.hot-cold-col { display: flex; flex-direction: column; gap: 8px; }
+.hot-cold-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.hot-chip {
+  padding: 4px 10px; border-radius: 10px;
+  background: var(--bg);
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  font-size: 12px; font-weight: 600;
+}
+
+.winner-table { display: flex; flex-direction: column; gap: 7px; }
+.winner-line {
+  display: flex; align-items: center; gap: 12px;
+  padding: 9px 11px; border-radius: 12px;
+  background: var(--bg);
+}
+.winner-seq { font-size: 15px; font-weight: 700; min-width: 58px; }
+.winner-levels { flex: 1; display: flex; flex-wrap: wrap; gap: 6px; }
+.winner-tag {
+  font-size: 11px; font-weight: 600;
+  padding: 2px 8px; border-radius: 999px;
+  border: 1px solid currentColor;
+}
+.winner-tag.lvl-1 { color: var(--level1); }
+.winner-tag.lvl-2 { color: var(--level2); }
+.winner-tag.lvl-3 { color: var(--level3); }
+.winner-total { font-size: 15px; font-weight: 700; }
+
+#stats-body.hidden { display: none; }

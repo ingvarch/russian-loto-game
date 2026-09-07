@@ -96,6 +96,28 @@ export function isGameFinished(state: unknown): boolean {
 
 const MAX_LIST = 200;
 
+// Games that predate state.startedAt cannot say when they began. They keep
+// one row per session under a "legacy" id, which is exactly what the old
+// session-keyed shape recorded, and drop out of duration statistics.
+export function makeGameId(sessionId: string, startedAt: number | null): string {
+  return `${sessionId}:${startedAt ?? "legacy"}`;
+}
+
+export function gameStartedAt(state: unknown): number | null {
+  const value = asRecord(state)?.["startedAt"];
+  return typeof value === "number" ? value : null;
+}
+
+function jackpotOf(state: unknown): number {
+  const value = asRecord(state)?.["jackpot"];
+  return typeof value === "number" ? value : 0;
+}
+
+function calledCount(state: unknown): number {
+  const value = asRecord(state)?.["called"];
+  return Array.isArray(value) ? value.length : 0;
+}
+
 export async function createSession(
   db: D1Database,
   id: string,
@@ -136,26 +158,45 @@ export async function recordState(
     .bind(id, now, now, finishedAt, JSON.stringify(state))
     .run();
 
+  // The session row is one per URL; this is one per game, so "Новая игра"
+  // starts a new row instead of overwriting the evening's history.
+  const startedAt = gameStartedAt(state);
+  const gameId = makeGameId(id, startedAt);
+  const called = calledCount(state);
+
+  await db
+    .prepare(
+      `INSERT INTO games (id, session_id, started_at, updated_at, finished_at, jackpot, called)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET
+         updated_at  = excluded.updated_at,
+         finished_at = excluded.finished_at,
+         jackpot     = excluded.jackpot,
+         called      = excluded.called`,
+    )
+    .bind(gameId, id, startedAt, now, finishedAt, jackpotOf(state), called)
+    .run();
+
   if (!finished) return;
 
   // Delete-then-insert keeps this idempotent and correct after an
   // отжатие shrinks the draw list. One batch, one round trip.
   const statements: D1PreparedStatement[] = [
-    db.prepare("DELETE FROM draws WHERE session_id = ?").bind(id),
-    db.prepare("DELETE FROM wins WHERE session_id = ?").bind(id),
+    db.prepare("DELETE FROM draws WHERE game_id = ?").bind(gameId),
+    db.prepare("DELETE FROM wins WHERE game_id = ?").bind(gameId),
   ];
   const insertDraw = db.prepare(
-    "INSERT INTO draws (session_id, call_index, number) VALUES (?, ?, ?)",
+    "INSERT INTO draws (game_id, call_index, number) VALUES (?, ?, ?)",
   );
   for (const d of drawRows(state)) {
-    statements.push(insertDraw.bind(id, d.callIndex, d.number));
+    statements.push(insertDraw.bind(gameId, d.callIndex, d.number));
   }
   const insertWin = db.prepare(
-    `INSERT INTO wins (session_id, level, cid, seq, call_count)
+    `INSERT INTO wins (game_id, level, cid, seq, call_count)
      VALUES (?, ?, ?, ?, ?)`,
   );
   for (const w of winRows(state)) {
-    statements.push(insertWin.bind(id, w.level, w.cid, w.seq, w.callCount));
+    statements.push(insertWin.bind(gameId, w.level, w.cid, w.seq, w.callCount));
   }
   await db.batch(statements);
 }
@@ -225,8 +266,17 @@ export async function sessionExists(
 // exists.
 export async function deleteSession(db: D1Database, id: string): Promise<void> {
   await db.batch([
-    db.prepare("DELETE FROM draws WHERE session_id = ?").bind(id),
-    db.prepare("DELETE FROM wins WHERE session_id = ?").bind(id),
+    db
+      .prepare(
+        "DELETE FROM draws WHERE game_id IN (SELECT id FROM games WHERE session_id = ?)",
+      )
+      .bind(id),
+    db
+      .prepare(
+        "DELETE FROM wins WHERE game_id IN (SELECT id FROM games WHERE session_id = ?)",
+      )
+      .bind(id),
+    db.prepare("DELETE FROM games WHERE session_id = ?").bind(id),
     db.prepare("DELETE FROM sessions WHERE id = ?").bind(id),
   ]);
 }
