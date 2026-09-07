@@ -93,9 +93,16 @@ header {
   }
   .drawer-close:active { background: var(--bg); }
 
-  /* Inside the panel the sections own the full width. */
+  /* The panel is already a surface, so the blocks inside it drop the card
+     chrome and own the full width. Their rows keep the inset background. */
   #side-drawer .winners-section,
-  #side-drawer .log-section { max-width: none; margin: 0; padding: 0 0 16px; }
+  #side-drawer .log-section {
+    max-width: none; margin: 0; padding: 0 0 16px;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
 }
 .display-link {
   display: inline-flex; align-items: center; gap: 6px;
@@ -204,6 +211,39 @@ header {
 
 .layout { display: flex; flex-direction: column; gap: 8px; }
 
+/* Each block is its own raised card, so the blocks read as separate things
+   rather than one long ribbon of rows. Two-stop elevation: a contact shadow
+   plus a soft ambient one. A light shadow is invisible on black, hence the
+   dark variant. */
+.layout {
+  --card-elev: 0 1px 2px rgba(28, 28, 30, 0.05), 0 8px 24px rgba(28, 28, 30, 0.06);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .layout {
+    --card-elev: 0 1px 2px rgba(0, 0, 0, 0.5), 0 8px 24px rgba(0, 0, 0, 0.45);
+  }
+}
+:root[data-theme="dark"] .layout {
+  --card-elev: 0 1px 2px rgba(0, 0, 0, 0.5), 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+/* A row sitting inside a surface card needs the page background to read at
+   all; on the bare page it keeps the surface it always had. */
+.card-block {
+  background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  border-radius: 18px;
+  box-shadow: var(--card-elev);
+}
+.card-block .winner-row,
+.card-block .payout-row,
+.card-block .log-entry { background: var(--bg); }
+.card-block .log-entry.level-3 {
+  background: color-mix(in srgb, var(--level3) 10%, var(--bg));
+}
+.card-block .log-entry.status-absent,
+.card-block .log-entry.locked { background: transparent; }
+
 /* Each side column is a flex stack so hidden blocks collapse with no gap:
    left holds Банк then Победители, right holds "4 из 5" then События. When
    "4 из 5" is empty the log rises to the top of its column. */
@@ -224,43 +264,26 @@ header {
   .col-left { grid-area: left; }
   .area-board { grid-area: board; }
   .col-right { grid-area: right; }
-  /* Each block is its own raised card, so the three columns read as four
-     separate things rather than one long ribbon of rows. Two-stop elevation:
-     a contact shadow plus a soft ambient one. */
-  .layout {
-    --card-elev: 0 1px 2px rgba(28, 28, 30, 0.05), 0 8px 24px rgba(28, 28, 30, 0.06);
-  }
   .layout .winners-section,
   .layout .close-section,
   .layout .payout-section,
-  .layout .log-section {
-    max-width: none; margin: 0;
-    padding: 15px;
-    background: var(--surface);
-    border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
-    border-radius: 18px;
-    box-shadow: var(--card-elev);
-  }
+  .layout .log-section { max-width: none; margin: 0; padding: 15px; }
   .layout .col-side { gap: 16px; }
-
-  /* Inside a surface card the rows need the page background to read at all;
-     the level-coloured left edge stays as it is everywhere else. */
-  .layout .winner-row,
-  .layout .payout-row,
-  .layout .log-entry { background: var(--bg); }
-  .layout .log-entry.level-3 {
-    background: color-mix(in srgb, var(--level3) 10%, var(--bg));
-  }
-  .layout .log-entry.status-absent,
-  .layout .log-entry.locked { background: transparent; }
-  .layout .log-toggle:active { background: var(--border); }
 }
 
-@media (min-width: 900px) and (prefers-color-scheme: dark) {
-  .layout {
-    --card-elev: 0 1px 2px rgba(0, 0, 0, 0.5), 0 8px 24px rgba(0, 0, 0, 0.45);
+/* Phone: the two blocks that stay on the main screen become cards too, inset
+   from the edges like the board above them. Winners and the log are in the
+   drawer, which is already a surface -- they only need their rows inset. */
+@media (max-width: 899px) {
+  /* Scoped through .layout so these win over the plain .close-section rule
+     that appears later in this file. */
+  .layout .payout-section,
+  .layout .close-section {
+    max-width: min(600px, calc(100% - 24px));
+    padding: 14px 15px;
   }
 }
+
 
 .close-section {
   padding: 6px 16px 4px;
