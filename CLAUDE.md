@@ -296,6 +296,7 @@ russian-loto-game/
 │           ├── admin-logic.js     # pure listing-row summary
 │           ├── admin-ui.js        # panel DOM rendering
 │           ├── main-admin.js      # panel bootstrap (polls the listing)
+│           ├── nav-progress.js    # dim + spinner while a screen loads
 │           ├── normalize-deck.js  # registry shape -> flat card array
 │           ├── validate-cards.js  # client mirror of the server checks
 │           └── landing.js         # landing-page session creation

@@ -15,6 +15,7 @@ import * as state from "./state.js";
 import * as ui from "./ui.js";
 import { openShareModal } from "./share-modal.js";
 import { registerServiceWorker } from "./pwa.js";
+import { installNavProgress } from "./nav-progress.js";
 import { loadPrefs, applyTheme } from "./prefs.js";
 import { startWakeLock } from "./wake-lock.js";
 
@@ -108,3 +109,4 @@ document.addEventListener("keydown", (ev) => {
 });
 
 registerServiceWorker();
+installNavProgress();

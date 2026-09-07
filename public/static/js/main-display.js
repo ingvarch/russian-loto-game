@@ -11,6 +11,7 @@
 import * as displayUI from "./display-ui.js";
 import { openShareModal } from "./share-modal.js";
 import { registerServiceWorker } from "./pwa.js";
+import { installNavProgress } from "./nav-progress.js";
 import { loadPrefs, applyTheme } from "./prefs.js";
 import { startWakeLock } from "./wake-lock.js";
 
@@ -73,3 +74,4 @@ applyTheme(prefs.theme);
 if (prefs.keepAwake) startWakeLock();
 
 registerServiceWorker();
+installNavProgress();

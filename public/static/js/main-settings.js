@@ -9,6 +9,7 @@ import { loadPrefs, updatePrefs, applyTheme } from "./prefs.js";
 import { startWakeLock, stopWakeLock, wakeLockSupported } from "./wake-lock.js";
 import { openShareModal } from "./share-modal.js";
 import { registerServiceWorker } from "./pwa.js";
+import { installNavProgress } from "./nav-progress.js";
 
 const themeChoice = document.getElementById("theme-choice");
 const keepAwakeEl = document.getElementById("pref-keep-awake");
@@ -54,3 +55,4 @@ document.getElementById("open-share").addEventListener("click", openShareModal);
 if (prefs.keepAwake) startWakeLock();
 
 registerServiceWorker();
+installNavProgress();
