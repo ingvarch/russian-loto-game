@@ -157,6 +157,10 @@ header {
    title look so the three blocks line up and read as a family. Mobile stacks
    them (winners between field and "4 из 5"); desktop splits into columns. */
 .winners-section, .payout-section, .log-section {
+  /* width:100% matters inside .col-side: an auto cross-axis margin on a flex
+     item cancels stretch, so without it these shrink to their content and
+     drift to the middle of the column instead of filling it. */
+  width: 100%;
   max-width: 600px; margin: 0 auto; padding: 8px 16px;
 }
 .winners-section.hidden, .payout-section.hidden { display: none; }
@@ -228,6 +232,7 @@ header {
 
 .close-section {
   padding: 6px 16px 4px;
+  width: 100%;
   max-width: 600px; margin: 0 auto;
   display: flex; flex-direction: column;
   gap: 8px;
