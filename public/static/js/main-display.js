@@ -9,6 +9,8 @@
 // (e.g. /s/<id>/api/events).
 
 import * as displayUI from "./display-ui.js";
+import { openShareModal } from "./share-modal.js";
+import { registerServiceWorker } from "./pwa.js";
 
 const THEME_KEY = "loto-display-theme";
 
@@ -29,6 +31,9 @@ if (themeBtn) {
     writeStoredTheme(light ? "light" : "dark");
   });
 }
+
+const shareBtn = document.getElementById("share-display-btn");
+if (shareBtn) shareBtn.addEventListener("click", openShareModal);
 
 const CARDS = JSON.parse(document.getElementById("cards-data").textContent);
 const SERVER_RANGE = JSON.parse(document.getElementById("server-range").textContent);
@@ -83,3 +88,5 @@ document.addEventListener("visibilitychange", () => {
   }
   connectSSE();
 });
+
+registerServiceWorker();

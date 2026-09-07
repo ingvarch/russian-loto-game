@@ -10,6 +10,7 @@
 // opens its new-game modal for bank/percentages/range pickup.
 
 import { normalizeDeck } from "./normalize-deck.js";
+import { registerServiceWorker } from "./pwa.js";
 import { validateCards } from "./validate-cards.js";
 
 const errEl = document.getElementById("error");
@@ -89,3 +90,5 @@ helpModal.addEventListener("click", (ev) => {
 document.getElementById("format-help-close").addEventListener("click", () => {
   helpModal.classList.remove("open");
 });
+
+registerServiceWorker();

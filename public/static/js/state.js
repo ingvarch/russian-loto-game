@@ -14,6 +14,9 @@
 //   easterEggs: bool                           -- meme toasts on the display
 //                                                 for special numbers
 //   cardRange: [lo, hi] | null                 -- active card-seq filter
+//   startedAt: epoch ms | null                 -- when this game began; drives
+//                                                 the display clock. null on
+//                                                 saves predating it.
 //   levelAutoConfirm: {1: bool, 2: bool, 3: bool}
 //                                              -- once the admin confirms ANY
 //                                                 card at level L is playing,
@@ -71,6 +74,7 @@ export function freshState(overrides) {
     cardRange: null,
     levelAutoConfirm: { 1: false, 2: false, 3: false },
     tiebreakWinners: {},
+    startedAt: Date.now(),
   };
   return Object.assign(base, overrides || {});
 }
@@ -88,6 +92,9 @@ export function loadState() {
     if (parsed.musicPause === undefined) parsed.musicPause = null;
     if (parsed.easterEggs === undefined) parsed.easterEggs = true;
     if (parsed.cardRange === undefined) parsed.cardRange = null;
+    // Saves from before the display clock existed cannot say when the game
+    // began; null means "no clock" rather than a made-up start.
+    if (parsed.startedAt === undefined) parsed.startedAt = null;
     if (!parsed.levelAutoConfirm || typeof parsed.levelAutoConfirm !== "object") {
       // For old saves that pre-date the auto-confirm flow: if the admin has
       // already confirmed some events at a level, treat that level as

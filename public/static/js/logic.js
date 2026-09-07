@@ -384,6 +384,20 @@ export function computePayouts(state, cards) {
   };
 }
 
+// Elapsed game time for the display clock. Hours appear only once there are
+// any, so a normal game reads "12:34" rather than "0:12:34". A backwards
+// clock (device time changed mid-game) reads zero rather than a negative.
+export function formatElapsed(ms) {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const seconds = total % 60;
+  const minutes = Math.floor(total / 60) % 60;
+  const hours = Math.floor(total / 3600);
+  const pad = (n) => String(n).padStart(2, "0");
+  return hours > 0
+    ? `${hours}:${pad(minutes)}:${pad(seconds)}`
+    : `${minutes}:${pad(seconds)}`;
+}
+
 // Musical pause: configured at new-game time as { number, done }. The pause
 // is "active" (overlays shown, host must press continue) from the moment the
 // number is called until the host dismisses it. Uncalling the number before

@@ -15,6 +15,7 @@ let serverRange = null;
 const gridEl = document.getElementById("number-grid");
 const counterEl = document.getElementById("counter-called");
 const statusEl = document.getElementById("status");
+const clockEl = document.getElementById("session-clock");
 const currentBallEl = document.getElementById("current-ball");
 const currentNumEl = document.getElementById("current-num");
 const recentListEl = document.getElementById("recent-list");
@@ -30,6 +31,7 @@ const EASTER_EGGS = { 18: "18.png", 67: "67.png", 69: "69.png" };
 const EGG_NUMBERS = Object.keys(EASTER_EGGS).map(Number);
 
 let prevCalled = [];
+let startedAt = null;
 
 if (!SHOW_EXTRAS) document.body.classList.add("hide-extras");
 
@@ -126,8 +128,22 @@ function renderCurrentAndRecent(calledArr) {
   }
 }
 
+// The clock reads from the wall clock every tick rather than counting up, so
+// a throttled background tab or a sleeping screen catches up on its own.
+function tickClock() {
+  if (startedAt === null) {
+    clockEl.classList.add("hidden");
+    return;
+  }
+  clockEl.classList.remove("hidden");
+  clockEl.textContent = logic.formatElapsed(Date.now() - startedAt);
+}
+
 function render(gameState) {
   if (!gameState) return;
+
+  startedAt = typeof gameState.startedAt === "number" ? gameState.startedAt : null;
+  tickClock();
 
   const called = logic.calledSet(gameState.called || []);
   const cards = logic.activeCards(CARDS, gameState.cardRange || serverRange);
@@ -212,6 +228,8 @@ export function init({ cards, range }) {
   CARDS = cards;
   serverRange = range;
   buildGrid();
+  tickClock();
+  setInterval(tickClock, 1000);
 }
 
 export { render };

@@ -54,6 +54,50 @@ header {
   font-weight: 400;
 }
 
+.header-right {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+}
+
+/* Elapsed time for the current game, right-aligned opposite the draw count.
+   Dimmed so it never competes with the kegs. */
+.session-clock {
+  font-size: 2rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+  line-height: 1;
+}
+
+.session-clock.hidden {
+  display: none;
+}
+
+/* QR and link to this board, for the phone in the host's hand. A projector
+   has nobody to tap it, so it disappears with the tab bar. */
+.share-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.share-btn:active { background: var(--border); }
+
+@media (min-width: 900px) {
+  .share-btn { display: none; }
+}
+
 .status {
   font-size: 0.9rem;
   color: var(--text-dim);
@@ -395,7 +439,8 @@ body.hide-extras .close-section {
   header {
     padding: 10px 16px;
   }
-  .counter {
+  .counter,
+  .session-clock {
     font-size: 1.6rem;
   }
   main {
@@ -488,6 +533,13 @@ body.hide-extras .close-section {
 
 .theme-toggle:active {
   transform: scale(0.92);
+}
+
+/* Clear the tab bar, and let the board grow instead of being clipped to a
+   viewport height that no longer accounts for it. */
+@media (max-width: 899px) {
+  main { height: auto; }
+  .theme-toggle { bottom: calc(68px + env(safe-area-inset-bottom)); }
 }
 
 .theme-toggle-icon {

@@ -13,6 +13,8 @@
 
 import * as state from "./state.js";
 import * as ui from "./ui.js";
+import { openShareModal } from "./share-modal.js";
+import { registerServiceWorker } from "./pwa.js";
 
 const CARDS = JSON.parse(document.getElementById("cards-data").textContent);
 const SERVER_RANGE = JSON.parse(document.getElementById("server-range").textContent);
@@ -72,41 +74,8 @@ const initialState =
 ui.init({ cards: CARDS, initialState, onSave: pushToServer, autoOpenNewGame });
 connectSSE();
 
-// ---- Share-display modal: QR + copyable URL ------------------------------
+// ---- Share-display sheet -------------------------------------------------
 
-const shareModal = document.getElementById("share-display-modal");
-const qrImg = document.getElementById("qr-img");
-const qrUrlEl = document.getElementById("qr-url");
-const displayUrl = new URL("display", location.href).toString();
-qrUrlEl.textContent = displayUrl;
+document.getElementById("share-display-btn").addEventListener("click", openShareModal);
 
-document.getElementById("share-display-btn").addEventListener("click", () => {
-  // Lazy-load the QR: only fetched when the host actually opens the
-  // modal, so admin pages that never share don't pay for the render.
-  if (!qrImg.src) qrImg.src = "qr.svg";
-  shareModal.classList.add("open");
-});
-
-shareModal.querySelector('[data-action="cancel"]').addEventListener("click", () => {
-  shareModal.classList.remove("open");
-});
-shareModal.addEventListener("click", (ev) => {
-  if (ev.target === shareModal) shareModal.classList.remove("open");
-});
-
-document.getElementById("qr-copy-btn").addEventListener("click", async () => {
-  try {
-    await navigator.clipboard.writeText(displayUrl);
-    const btn = document.getElementById("qr-copy-btn");
-    const prev = btn.textContent;
-    btn.textContent = "Скопировано";
-    setTimeout(() => { btn.textContent = prev; }, 1200);
-  } catch {
-    // Clipboard may be denied; fall back to selecting the text.
-    const range = document.createRange();
-    range.selectNodeContents(qrUrlEl);
-    const sel = window.getSelection();
-    sel.removeAllRanges();
-    sel.addRange(range);
-  }
-});
+registerServiceWorker();

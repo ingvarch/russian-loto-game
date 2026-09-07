@@ -18,6 +18,7 @@ import {
   isEventReopenable,
   closeCountsByLevel,
   computePayouts,
+  formatElapsed,
   hasPendingEvents,
   isCardClose,
   levelOf,
@@ -934,4 +935,26 @@ test("pickMusicNumber: every draw is a whole keg number", () => {
     assert.ok(Number.isInteger(n), `not an integer: ${n}`);
     assert.ok(n >= 1 && n <= TOTAL_KEGS, `out of range: ${n}`);
   }
+});
+
+test("formatElapsed: minutes and seconds under an hour", () => {
+  assert.equal(formatElapsed(0), "0:00");
+  assert.equal(formatElapsed(9_000), "0:09");
+  assert.equal(formatElapsed(59_000), "0:59");
+  assert.equal(formatElapsed(60_000), "1:00");
+  assert.equal(formatElapsed(3_599_000), "59:59");
+});
+
+test("formatElapsed: hours appear only once the game passes one", () => {
+  assert.equal(formatElapsed(3_600_000), "1:00:00");
+  assert.equal(formatElapsed(3_661_000), "1:01:01");
+  assert.equal(formatElapsed(45_296_000), "12:34:56");
+});
+
+test("formatElapsed: a clock that ran backwards reads as zero, never negative", () => {
+  assert.equal(formatElapsed(-5_000), "0:00");
+});
+
+test("formatElapsed: sub-second remainders truncate rather than round up", () => {
+  assert.equal(formatElapsed(1_999), "0:01");
 });

@@ -12,7 +12,9 @@ import {
   applyResolveEvent,
   applyResolveTiebreak,
   freshState,
+  loadState,
   recompute,
+  STORAGE_KEY,
 } from "../../public/static/js/state.js";
 
 
@@ -307,4 +309,28 @@ test("applyCallNumber: preserves chronological order regardless of value", () =>
   applyCallNumber(s, 25, cards);
   assert.deepEqual(s.called, [50, 8, 25]);
   assert.equal(s.called[s.called.length - 1], 25);
+});
+
+test("freshState: stamps the moment the game started", () => {
+  const before = Date.now();
+  const s = freshState();
+  const after = Date.now();
+  assert.ok(typeof s.startedAt === "number", "startedAt should be a number");
+  assert.ok(s.startedAt >= before && s.startedAt <= after);
+});
+
+test("loadState: a save from before the timer existed reports no start time", () => {
+  const store = new Map();
+  globalThis.localStorage = {
+    getItem: (k) => (store.has(k) ? store.get(k) : null),
+    setItem: (k, v) => store.set(k, String(v)),
+    removeItem: (k) => store.delete(k),
+  };
+  const saved = freshState();
+  delete saved.startedAt;
+  store.set(STORAGE_KEY, JSON.stringify(saved));
+
+  assert.equal(loadState().startedAt, null);
+
+  delete globalThis.localStorage;
 });
