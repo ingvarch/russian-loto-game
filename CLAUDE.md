@@ -88,6 +88,33 @@ All UI decisions follow Apple HIG. The display page is optimised for a
 projector (dark, high-contrast, large type, tabular numerals). The
 admin page reads on phone and laptop.
 
+Icons follow the HIG vocabulary, but the assets are **not** SF Symbols and
+must never become them. Apple licenses SF Symbols for interfaces of software
+running on Apple platforms, and forbids modifying or redistributing the
+symbols; this app is served to any browser, including the Android phone in a
+host's hand and whatever renders the board on a TV. Shipping exported SF
+Symbols SVGs in `public/` would break that licence.
+
+What to use instead:
+
+- Lucide (https://lucide.dev, ISC). The outline set closest to SF Symbols:
+  24-unit grid, rounded caps and joins, even optical weight.
+- Only the icons actually used are vendored, under
+  `public/static/img/icons/lucide/`, with the upstream LICENSE beside them.
+  Those files are the reference copies.
+- The markup is inlined at the point of use, so a page needs no icon font,
+  no sprite request and no JavaScript to paint its tab bar. Change an icon
+  in both places, or it drifts.
+- One weight everywhere: `stroke-width="1.75"`, lighter than Lucide's own
+  `2`, which reads closer to SF Symbols at the sizes here. Size comes from
+  the `width`/`height` attributes, never from CSS `font-size`.
+- No icons drawn from CSS borders and no letter glyphs standing in for
+  symbols ("?" in a circle, "i" in a circle, "↺"). They do not scale, do not
+  match the set, and cannot be restyled with the others.
+
+One deliberate exception: the musical-pause overlay on the display keeps its
+colour emoji. It is a celebratory full-screen moment on a TV, not chrome.
+
 ### Git
 
 - Conventional Commits only. Scope examples: `web`, `worker`, `do`,
