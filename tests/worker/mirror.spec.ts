@@ -102,8 +102,9 @@ describe("D1 mirror", () => {
   it("a broken mirror does not stop the game", async () => {
     const { sessionId, cookie } = await createSession();
 
-    // Storage is isolated per test, so this table drop is undone
-    // afterwards. It stands in for D1 being unavailable mid-game.
+    // Stands in for D1 being unavailable mid-game. The setup file's
+    // beforeEach re-applies the schema, so the drop does not leak into
+    // the next test.
     await env.DB.prepare("DROP TABLE draws").run();
     await env.DB.prepare("DROP TABLE wins").run();
     await env.DB.prepare("DROP TABLE sessions").run();

@@ -40,7 +40,7 @@ No feature or bugfix code lands without a failing test first.
 There are no "too simple to test" exceptions. Pure logic goes into
 `public/static/js/logic.js` and is covered by Node's built-in
 `node --test`. Worker + Durable Object behaviour is covered with
-Vitest + `@cloudflare/vitest-pool-workers` so it runs against the real
+Vitest + `@cloudflare/vitest-plugin` so it runs against the real
 Workers runtime.
 
 ### Root cause only
@@ -190,14 +190,13 @@ schema, no compatibility guarantee, and a warning on every command. Rate
 limiting graduated out of it. Staging gets its own `namespace_id` so it
 does not spend production's counter.
 
-Known noise: `bun run test:worker` prints `Unexpected fields found in
-top-level field: "ratelimits"`. `@cloudflare/vitest-pool-workers@0.8.x`
-bundles wrangler 4.35, which predates the key; the 4.85 CLI accepts it
-and deploys cleanly. Harmless — the binding was never bound under test
-anyway, and `handleSessionCreate` skips the check when it is absent.
-Tech debt, not a fix: clearing it means upgrading the pool to 0.22,
-which requires vitest 4 (we are on 2.1.9). That upgrade would also
-unpin `compatibility_date`, so treat it as one piece of work.
+`wrangler deploy --dry-run` must print zero warnings, in the default
+environment and in `staging`. Treat a new one as a defect rather than
+background noise — the last two were real. One was an unrecognised
+binding key; the other was `[env.staging]` inheriting the top-level
+`routes`, which would have reassigned `loto.1ly.dev` to the staging
+Worker and taken production down. Hence `routes = []` under
+`[env.staging]`.
 
 ## Tech stack
 
@@ -214,13 +213,15 @@ unpin `compatibility_date`, so treat it as one piece of work.
   logs at a sampling rate of 1 — traffic is tiny and the event worth
   catching (a failed D1 mirror write) is rare enough that sampling
   would lose it.
-- `compatibility_date` is pinned; bump it when a runtime feature we
-  want lands.
+- `compatibility_date` tracks the workerd that the wrangler CLI and
+  `@cloudflare/vitest-plugin` both bundle, so tests and production agree
+  on runtime behaviour. Bump it together with those packages, never on
+  its own.
 - Bun is the local toolchain: package install, script runner, and
   test runner. The Worker still runs on `workerd` in production —
   Bun never touches the runtime, only the host tooling.
 - Tests: `bun test` for pure client logic (uses `bun:test`), Vitest +
-  `@cloudflare/vitest-pool-workers` for Worker + DO behaviour. Vitest
+  `@cloudflare/vitest-plugin` for Worker + DO behaviour. Vitest
   is invoked via `bun run vitest` and spawns a real `workerd` under
   the hood, so test fidelity matches production.
 
@@ -382,7 +383,7 @@ date and update this document with what changed. Do not bump casually.
   coverage. Tests live in `tests/js/` and use the `bun:test` API
   (`import { test, expect } from "bun:test"`).
 - State mutators in `public/static/js/state.js` — same.
-- Worker routes and DO behaviour — Vitest + `@cloudflare/vitest-pool-workers`.
+- Worker routes and DO behaviour — Vitest + `@cloudflare/vitest-plugin`.
   Tests live in `tests/worker/` and run against a real `workerd`
   instance with its own SQLite-backed DO storage. Vitest is invoked
   with `bun run vitest`; Bun runs the Vitest binary just fine, the
@@ -391,18 +392,26 @@ date and update this document with what changed. Do not bump casually.
 - Two TS configs:
   - `tsconfig.json` — `src/` only, types `["@cloudflare/workers-types"]`.
     Worker code must not see Bun globals.
-  - `tsconfig.test.json` — `tests/` only, types `["@types/bun",
-    "@cloudflare/workers-types", "@cloudflare/vitest-pool-workers"]`.
-    The last one supplies the `cloudflare:test` module types; without it
-    every spec fails to resolve the import and the suite silently goes
-    unchecked.
+  - `tsconfig.test.json` — `tests/` plus `src/types.ts`, types
+    `["@types/bun", "@cloudflare/workers-types",
+    "@cloudflare/vitest-plugin/types"]`. The last supplies the
+    `cloudflare:test` module types; without it every spec fails to
+    resolve the import and the suite silently goes unchecked.
+    `src/types.ts` is listed because it carries the `Cloudflare.Env`
+    declarations and nothing under `tests/` imports it.
+- `SELF` is the Worker entrypoint only. It does no asset routing, so a
+  path served by the `[assets]` binding 404s through it. Fetch those via
+  `env.ASSETS`, and assert the Worker 404s on them to prove it does not
+  claim the path.
 - D1 migrations are not applied automatically. `vitest.config.ts` reads
   `migrations/` with `readD1Migrations` and passes them as a binding;
   `tests/worker/apply-migrations.ts` runs `applyD1Migrations` as a setup
-  file. Storage is isolated per test, so a spec may even drop a table to
-  simulate D1 being down.
-- `ADMIN_PASSWORD` reaches tests through
-  `poolOptions.workers.miniflare.bindings`, never `[vars]`.
+  file and re-applies the schema in a `beforeEach`. That last part
+  replaces the plugin's old `isolatedStorage`, which is gone: a spec may
+  still drop a table to simulate D1 being down, but row data now leaks
+  between tests in a file, so assertions must tolerate it or clean up.
+- `ADMIN_PASSWORD` reaches tests through the plugin's `miniflare.bindings`,
+  never `[vars]`.
 - Never mock what you can test for real. No stubs of the Durable
   Object — spin up the real one under Vitest.
 

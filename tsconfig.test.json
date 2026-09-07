@@ -1,16 +1,23 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    // @cloudflare/vitest-pool-workers ships the `cloudflare:test` module
-    // types (SELF, env, applyD1Migrations). Without it every spec fails
-    // to resolve the import and the suite goes unchecked.
+    // The `cloudflare:test` module types (SELF, env, applyD1Migrations)
+    // live behind the pool's `/types` subpath export as of 0.22 — the
+    // package root now resolves to the pool API instead. Without this
+    // entry every spec fails to resolve the import and the suite goes
+    // unchecked.
     "types": [
       "@types/bun",
       "@cloudflare/workers-types",
-      "@cloudflare/vitest-pool-workers"
+      "@cloudflare/vitest-plugin/types"
     ],
     "noEmit": true
   },
-  "include": ["tests/**/*.ts", "tests/**/*.mts"],
-  "exclude": ["node_modules", ".wrangler", "public", "src"]
+  // src/types.ts is pulled in explicitly: it carries the `Cloudflare.Env`
+  // binding declarations, and nothing under tests/ imports it, so without
+  // this the augmentation is absent from the test program and `env.DB`
+  // stops resolving. `exclude` cannot list "src" for the same reason —
+  // exclude filters include.
+  "include": ["tests/**/*.ts", "tests/**/*.mts", "src/types.ts"],
+  "exclude": ["node_modules", ".wrangler", "public"]
 }

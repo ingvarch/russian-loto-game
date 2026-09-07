@@ -3,9 +3,10 @@
 
 name = "russian-loto-game"
 main = "src/index.ts"
-# Pinned to the newest date the bundled workerd supports. Bump alongside
-# the wrangler/pool-workers upgrade, not on its own.
-compatibility_date = "2025-09-06"
+# Matches the workerd the CLI and the test plugin both bundle
+# (1.20260903.1), so tests and production agree. Bump alongside the
+# wrangler/vitest-plugin upgrade, not on its own.
+compatibility_date = "2026-09-03"
 workers_dev = true
 # Worker bundle only. Client JS under public/ ships unminified as ES
 # modules — the assets binding serves it verbatim, no build step.
@@ -66,6 +67,10 @@ new_sqlite_classes = ["GameRoom"]
 [env.staging]
 name = "russian-loto-game-staging"
 workers_dev = true
+# Must stay empty. `routes` IS inherited, so without this a staging
+# deploy reassigns loto.1ly.dev to the staging Worker and takes
+# production down. Staging is reachable on its workers.dev subdomain.
+routes = []
 
 [[env.staging.durable_objects.bindings]]
 name = "GAME_ROOM"
