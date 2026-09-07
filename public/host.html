@@ -124,13 +124,8 @@
           <span class="group-label">Банк</span>
           <input type="number" id="ng-jackpot" min="0" step="1" value="0" inputmode="numeric" placeholder="0">
         </label>
-        <label class="group-row" for="ng-cards">
-          <span class="group-label">Карты в игре</span>
-          <input type="text" id="ng-cards" placeholder="все" inputmode="text">
-        </label>
         <div class="group-foot">
           <span class="form-hint">Банк 0 — играем без денег.</span>
-          <span class="form-hint" id="ng-cards-hint"></span>
         </div>
       </div>
 
@@ -139,12 +134,14 @@
         <div class="preset-buttons" id="ng-presets">
           <button type="button" data-preset="classic" data-pct="10,25,65">Классика</button>
           <button type="button" data-preset="no-one" data-pct="0,30,70">Без 1-й линии</button>
-          <button type="button" data-preset="custom">Свой</button>
         </div>
       </div>
 
-      <div class="form-row">
-        <label>Проценты по уровням (сумма = 100)</label>
+      <details class="info">
+        <summary>
+          <span>Проценты по уровням (сумма = 100)</span>
+          <span class="info-btn" aria-hidden="true">i</span>
+        </summary>
         <div class="pct-inputs">
           <div class="form-row">
             <label for="ng-pct1">одна линия</label>
@@ -159,7 +156,7 @@
             <input type="number" id="ng-pct3" min="0" max="100" step="1" value="65" inputmode="numeric">
           </div>
         </div>
-      </div>
+      </details>
 
       <div class="form-group hidden" id="ng-music-num-row">
         <label class="group-row" for="ng-music-num">
@@ -199,6 +196,15 @@
             </span>
             <input type="checkbox" id="ng-eggs" class="switch">
           </label>
+
+          <label class="group-row" for="ng-cards">
+            <span class="group-label">Карты в игре</span>
+            <input type="text" id="ng-cards" placeholder="все" inputmode="text">
+          </label>
+
+          <div class="group-foot">
+            <span class="form-hint" id="ng-cards-hint"></span>
+          </div>
         </div>
       </details>
 

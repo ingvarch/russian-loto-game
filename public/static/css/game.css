@@ -411,6 +411,31 @@ header {
   color: var(--text-dim);
 }
 
+/* Section label that doubles as a disclosure: the "i" badge is the
+   affordance, the whole label row is the hit target, and the per-level
+   percentages stay folded away until asked for. Native <details>, no JS. */
+.info > summary {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.5px;
+  color: var(--text-dim);
+  cursor: pointer; user-select: none;
+  list-style: none;
+}
+.info > summary::-webkit-details-marker { display: none; }
+.info-btn {
+  flex: none;
+  width: 16px; height: 16px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--border); border-radius: 50%;
+  font-size: 10px; font-weight: 700; line-height: 1;
+  text-transform: none; letter-spacing: 0;
+}
+.info > summary:hover { color: var(--text); }
+.info > summary:hover .info-btn { border-color: var(--text-dim); }
+.info[open] .info-btn { border-color: var(--accent); color: var(--accent); }
+.info[open] > summary { margin-bottom: 8px; }
+
 /* Grouped inset list: rows share one rounded container, split by hairlines.
    Value sits at the trailing edge of its own row, label at the leading one. */
 .form-group {
@@ -526,7 +551,7 @@ input.switch:checked::after { transform: translateX(20px); }
 /* Segmented control: the track holds three options, the active one rides on
    a raised surface pill. */
 .preset-buttons {
-  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2px;
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px;
   padding: 2px;
   background: var(--bg);
   border: 1px solid var(--border);

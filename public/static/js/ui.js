@@ -618,21 +618,10 @@ function syncPresetActive() {
   const p2 = parseInt(document.getElementById("ng-pct2").value, 10);
   const p3 = parseInt(document.getElementById("ng-pct3").value, 10);
   const currentPct = [p1, p2, p3].join(",");
-  const buttons = document.querySelectorAll("#ng-presets button");
-  let matched = false;
-  buttons.forEach((btn) => {
-    if (btn.dataset.pct === currentPct) {
-      btn.classList.add("active");
-      matched = true;
-    } else {
-      btn.classList.remove("active");
-    }
+  // No preset matching the typed percentages simply leaves none highlighted.
+  document.querySelectorAll("#ng-presets button").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.pct === currentPct);
   });
-  if (!matched) {
-    // Highlight "Свой" if no preset matches
-    const customBtn = document.querySelector('#ng-presets button[data-preset="custom"]');
-    if (customBtn) customBtn.classList.add("active");
-  }
 }
 
 function wireNewGameModal() {
