@@ -84,4 +84,27 @@ connectSSE();
 
 document.getElementById("share-display-btn").addEventListener("click", openShareModal);
 
+// ---- Side drawer: winners and the event log on a phone --------------------
+//
+// The drawer is the right-hand column moved off-canvas by CSS, so opening it
+// is only a class toggle. Above the three-column breakpoint the button is
+// hidden and this code never runs.
+
+const drawerEl = document.getElementById("side-drawer");
+const drawerBackdropEl = document.getElementById("drawer-backdrop");
+const drawerBtn = document.getElementById("drawer-btn");
+
+function setDrawer(open) {
+  drawerEl.classList.toggle("open", open);
+  drawerBackdropEl.classList.toggle("open", open);
+  drawerBtn.setAttribute("aria-expanded", String(open));
+}
+
+drawerBtn.addEventListener("click", () => setDrawer(true));
+document.getElementById("drawer-close").addEventListener("click", () => setDrawer(false));
+drawerBackdropEl.addEventListener("click", () => setDrawer(false));
+document.addEventListener("keydown", (ev) => {
+  if (ev.key === "Escape") setDrawer(false);
+});
+
 registerServiceWorker();

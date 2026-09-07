@@ -25,6 +25,78 @@ header {
 .header-actions {
   display: flex; align-items: center; gap: 8px;
 }
+
+/* Opens the side drawer. Only on phones: above the three-column breakpoint
+   the same sections are already on screen. */
+.drawer-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; padding: 0;
+  background: transparent;
+  border: 1px solid var(--border); border-radius: 12px;
+  color: var(--text);
+  cursor: pointer;
+  -webkit-appearance: none; appearance: none;
+}
+.drawer-btn:active { background: var(--border); }
+
+.drawer-backdrop {
+  position: fixed; inset: 0;
+  background: var(--modal-bg);
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.2s;
+  z-index: 70;
+}
+.drawer-backdrop.open { opacity: 1; pointer-events: auto; }
+
+.drawer-head { display: none; }
+
+@media (min-width: 900px) {
+  .drawer-btn, .drawer-backdrop { display: none; }
+}
+
+/* Phone: the right-hand column becomes an off-canvas panel. Same nodes, same
+   ids, same renderer -- only the placement changes, so nothing is duplicated
+   and ui.js never learns the drawer exists. */
+@media (max-width: 899px) {
+  #side-drawer {
+    position: fixed; top: 0; right: 0; bottom: 0;
+    width: min(88vw, 380px);
+    z-index: 71;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    box-shadow: -12px 0 40px rgba(0, 0, 0, 0.18);
+    padding: 0 14px calc(18px + env(safe-area-inset-bottom));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    transform: translateX(100%);
+    transition: transform 0.25s ease-out;
+  }
+  #side-drawer.open { transform: translateX(0); }
+
+  .drawer-head {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px;
+    position: sticky; top: 0;
+    padding: 14px 0 12px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 14px;
+  }
+  .drawer-title { font-size: 17px; font-weight: 600; }
+  .drawer-close {
+    flex: none;
+    display: flex; align-items: center; justify-content: center;
+    width: 36px; height: 36px; padding: 0;
+    background: transparent; border: none; border-radius: 10px;
+    color: var(--text-dim);
+    cursor: pointer;
+  }
+  .drawer-close:active { background: var(--bg); }
+
+  /* Inside the panel the sections own the full width. */
+  #side-drawer .winners-section,
+  #side-drawer .log-section { max-width: none; margin: 0; padding: 0 0 16px; }
+}
 .display-link {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 8px 14px;

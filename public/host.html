@@ -23,14 +23,25 @@
   </div>
   <div class="header-actions">
     <button type="button" class="display-link" id="share-display-btn" title="Поделиться ссылкой на табло">Табло</button>
+    <button type="button" class="drawer-btn" id="drawer-btn"
+            aria-label="Победители и события" title="Победители и события" aria-expanded="false">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M4 7h11M4 12h11M4 17h7"></path>
+        <path d="M20 5v14"></path>
+      </svg>
+    </button>
     <button class="new-game-btn" id="new-game-btn">Новая игра</button>
   </div>
 </header>
+
+<div class="drawer-backdrop" id="drawer-backdrop"></div>
 
 <div class="layout">
   <div class="grid-wrap area-board">
     <div class="grid" id="number-grid"></div>
   </div>
+
 
   <div class="col-side col-left">
     <section class="payout-section hidden" id="payout-section">
@@ -40,6 +51,32 @@
       </div>
       <div class="payout-grid" id="payout-grid"></div>
     </section>
+
+
+    <section class="close-section hidden" id="close-section">
+      <div class="close-head">
+        <span class="close-label" id="close-label"></span>
+        <button type="button" class="close-help-btn" id="close-help-btn" title="Что это?" aria-label="Что это?">?</button>
+      </div>
+      <p class="close-help hidden" id="close-help">
+        Карточки, которым до следующего выигрыша не хватает одного числа.
+        Цель меняется по ходу игры: одна линия → две линии → полное лото.
+      </p>
+      <span class="close-list" id="close-list"></span>
+    </section>
+
+  </div>
+
+  <div class="col-side col-right" id="side-drawer">
+    <div class="drawer-head">
+      <span class="drawer-title">Ход игры</span>
+      <button type="button" class="drawer-close" id="drawer-close" aria-label="Закрыть">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.9" stroke-linecap="round" aria-hidden="true">
+          <path d="M6 6l12 12M18 6 6 18"></path>
+        </svg>
+      </button>
+    </div>
 
     <section class="winners-section hidden" id="winners-section">
       <div class="winners-title">Победители</div>
@@ -57,20 +94,6 @@
           <span class="winner-seq">&mdash;</span>
         </div>
       </div>
-    </section>
-  </div>
-
-  <div class="col-side col-right">
-    <section class="close-section hidden" id="close-section">
-      <div class="close-head">
-        <span class="close-label" id="close-label"></span>
-        <button type="button" class="close-help-btn" id="close-help-btn" title="Что это?" aria-label="Что это?">?</button>
-      </div>
-      <p class="close-help hidden" id="close-help">
-        Карточки, которым до следующего выигрыша не хватает одного числа.
-        Цель меняется по ходу игры: одна линия → две линии → полное лото.
-      </p>
-      <span class="close-list" id="close-list"></span>
     </section>
 
     <section class="log-section" id="log-section">
