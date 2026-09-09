@@ -1,9 +1,9 @@
 // Display page entry point.
 //
-// The Worker rewrites the two `<script type="application/json">` blobs
-// in the HTML shell with this session's cards and range. We bootstrap
-// the read-only UI, fetch the latest snapshot once for late-joining,
-// then keep it in sync via SSE with auto-reconnect on disconnect.
+// The Worker rewrites the `<script type="application/json">` cards blob
+// in the HTML shell with this session's deck. We bootstrap the read-only
+// UI, fetch the latest snapshot once for late-joining, then keep it in
+// sync via SSE with auto-reconnect on disconnect.
 //
 // API paths are relative so they resolve under the session prefix
 // (e.g. /s/<id>/api/events).
@@ -16,9 +16,8 @@ import { loadPrefs, applyTheme } from "./prefs.js";
 import { startWakeLock } from "./wake-lock.js";
 
 const CARDS = JSON.parse(document.getElementById("cards-data").textContent);
-const SERVER_RANGE = JSON.parse(document.getElementById("server-range").textContent);
 
-displayUI.init({ cards: CARDS, range: SERVER_RANGE });
+displayUI.init({ cards: CARDS });
 
 function refetchState() {
   return fetch("./api/state")
@@ -68,6 +67,13 @@ document.addEventListener("visibilitychange", () => {
   }
   connectSSE();
 });
+
+// ---- Share-display sheet -------------------------------------------------
+//
+// Same sheet the host raises; share-modal.js drops its "open on this device"
+// link when it notices it is already on the board.
+
+document.getElementById("share-display-btn").addEventListener("click", openShareModal);
 
 const prefs = loadPrefs();
 applyTheme(prefs.theme);

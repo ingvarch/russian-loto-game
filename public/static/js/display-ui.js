@@ -2,14 +2,9 @@ import * as logic from "./logic.js";
 import { buildGrid } from "./ui-grid.js";
 import { renderWinnersPanel } from "./ui-winners.js";
 
-// Toggle the auxiliary panels ("4 из 5" и "Победители"). Set to true to bring
-// them back without touching markup — they're still rendered, just CSS-hidden.
-const SHOW_EXTRAS = false;
-
 const RECENT_TAIL = 5; // number of previous draws shown beside the current one
 
 let CARDS = [];
-let serverRange = null;
 
 const gridEl = document.getElementById("number-grid");
 const counterEl = document.getElementById("counter-called");
@@ -31,8 +26,6 @@ const EGG_NUMBERS = Object.keys(EASTER_EGGS).map(Number);
 
 let prevCalled = [];
 let startedAt = null;
-
-if (!SHOW_EXTRAS) document.body.classList.add("hide-extras");
 
 function formatAmount(n) { return (n || 0).toLocaleString("ru-RU"); }
 
@@ -105,7 +98,7 @@ function render(gameState) {
   tickClock();
 
   const called = logic.calledSet(gameState.called || []);
-  const cards = logic.activeCards(CARDS, gameState.cardRange || serverRange);
+  const cards = logic.activeCards(CARDS, gameState.cardRange);
   const lastCalled =
     gameState.called && gameState.called.length > 0
       ? gameState.called[gameState.called.length - 1]
@@ -122,13 +115,6 @@ function render(gameState) {
 
   renderCurrentAndRecent(gameState.called || []);
   renderPrize(gameState, cards);
-
-  const closeCounts = logic.closeCountsByLevel(cards, called);
-  for (const lvl of [1, 2, 3]) {
-    const el = document.getElementById(`close-${lvl}`);
-    if (el) el.textContent = String(closeCounts[lvl]);
-  }
-
   renderWinners(gameState, cards);
   renderWinOverlay(gameState, cards);
   renderMusicPause(gameState);
@@ -183,9 +169,8 @@ export function setConnected(connected) {
   statusEl.classList.toggle("connected", connected);
 }
 
-export function init({ cards, range }) {
+export function init({ cards }) {
   CARDS = cards;
-  serverRange = range;
   buildGrid();
   tickClock();
   setInterval(tickClock, 1000);

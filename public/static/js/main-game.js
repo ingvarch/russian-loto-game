@@ -1,11 +1,11 @@
 // Admin page entry point.
 //
-// The Worker rewrites the two `<script type="application/json">` blobs
-// in the HTML shell with this session's cards and range. We read them,
-// resolve the initial state (server snapshot wins over local cache wins
-// over fresh state), hand everything to the UI module, and subscribe
-// to the same SSE stream the display uses so two admin views in two
-// browsers stay in lockstep.
+// The Worker rewrites the `<script type="application/json">` cards blob
+// in the HTML shell with this session's deck. We read it, resolve the
+// initial state (server snapshot wins over local cache wins over fresh
+// state), hand everything to the UI module, and subscribe to the same
+// SSE stream the display uses so two admin views in two browsers stay
+// in lockstep.
 //
 // API paths are relative so they resolve under the session prefix
 // (e.g. /s/<id>/api/state). The owner cookie is scoped to that prefix
@@ -20,7 +20,6 @@ import { loadPrefs, applyTheme } from "./prefs.js";
 import { startWakeLock } from "./wake-lock.js";
 
 const CARDS = JSON.parse(document.getElementById("cards-data").textContent);
-const SERVER_RANGE = JSON.parse(document.getElementById("server-range").textContent);
 
 const sessionMatch = location.pathname.match(/^\/s\/([^/]+)\//);
 state.setSession(sessionMatch ? sessionMatch[1] : null);
@@ -76,7 +75,7 @@ if (prefs.keepAwake) startWakeLock();
 const initialState =
   remoteState
   || state.loadState()
-  || state.freshState({ cardRange: SERVER_RANGE, easterEggs: prefs.easterEggs });
+  || state.freshState({ easterEggs: prefs.easterEggs });
 
 ui.init({ cards: CARDS, initialState, onSave: pushToServer, autoOpenNewGame });
 connectSSE();

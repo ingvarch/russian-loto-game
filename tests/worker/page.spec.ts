@@ -1,7 +1,7 @@
 // Page serving for session-scoped admin and display URLs. The Worker
 // pulls the static HTML shell from the [assets] binding and rewrites
-// the two `<script type="application/json">` blobs (cards + range)
-// with values from the session's GameRoom DO.
+// the `<script type="application/json">` cards blob with the deck from
+// the session's GameRoom DO.
 
 import { describe, expect, it } from "vitest";
 import { SELF } from "cloudflare:test";
@@ -31,7 +31,7 @@ describe("/s/<id>/ (admin page)", () => {
     expect(res.status).toBe(404);
   });
 
-  it("serves the admin HTML with cards-data and server-range injected", async () => {
+  it("serves the admin HTML with cards-data injected", async () => {
     const { sessionId } = await createSession();
     const res = await SELF.fetch(`https://example.com/s/${sessionId}/`);
     expect(res.status).toBe(200);
@@ -41,14 +41,12 @@ describe("/s/<id>/ (admin page)", () => {
     // Placeholders must be replaced -- otherwise the client JS would
     // fail to parse them as JSON on load.
     expect(html).not.toContain("{{CARDS_JSON}}");
-    expect(html).not.toContain("{{SERVER_RANGE}}");
 
     const cards = extractInlineJSON(html, "cards-data");
     expect(Array.isArray(cards)).toBe(true);
 
-    const range = extractInlineJSON(html, "server-range");
-    // Default sessions have no server-side range filter.
-    expect(range).toBeNull();
+    // The card range lives in game state, not in a bootstrap blob.
+    expect(html).not.toContain('id="server-range"');
   });
 });
 
@@ -60,7 +58,7 @@ describe("/s/<id>/display (display page)", () => {
     expect(res.status).toBe(404);
   });
 
-  it("serves the display HTML with cards-data and server-range injected", async () => {
+  it("serves the display HTML with cards-data injected", async () => {
     const { sessionId } = await createSession();
     const res = await SELF.fetch(
       `https://example.com/s/${sessionId}/display`,
@@ -70,10 +68,10 @@ describe("/s/<id>/display (display page)", () => {
 
     const html = await res.text();
     expect(html).not.toContain("{{CARDS_JSON}}");
-    expect(html).not.toContain("{{SERVER_RANGE}}");
 
     const cards = extractInlineJSON(html, "cards-data");
     expect(Array.isArray(cards)).toBe(true);
+    expect(html).not.toContain('id="server-range"');
   });
 });
 

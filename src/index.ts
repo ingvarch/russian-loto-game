@@ -202,9 +202,9 @@ async function handleState(
 // ---- Page rendering ------------------------------------------------------
 //
 // /s/<id>/ and /s/<id>/display serve the shared HTML shells from the
-// [assets] binding, with the two `<script type="application/json">`
-// blobs (cards + range) rewritten to the session's actual values. The
-// shells live at /host.html and /display.html in the assets bucket.
+// [assets] binding, with the `<script type="application/json">` cards
+// blob rewritten to the session's actual deck. The shells live at
+// /host.html and /display.html in the assets bucket.
 //
 // The host's shell is host.html, not admin.html: /admin is the operator
 // panel, a different page for a different audience.
@@ -249,7 +249,6 @@ async function handlePage(
   if (assetRes.status !== 200) return assetRes;
   return new HTMLRewriter()
     .on("script#cards-data", new InjectJSON(cards))
-    .on("script#server-range", new InjectJSON(null))
     .transform(assetRes);
 }
 

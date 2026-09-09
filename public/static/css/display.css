@@ -2,7 +2,7 @@
  *
  * Always dark background for maximum contrast on a projector. Font sizes
  * are larger than the admin page; the grid dominates the viewport with a
- * sidebar for close-counts and winners.
+ * sidebar for winners.
  */
 
 :root {
@@ -277,10 +277,6 @@ main {
 
 /* ---- Hide auxiliary panels until needed -------------------------------- */
 
-body.hide-extras .close-section {
-  display: none;
-}
-
 .winners-section.hidden,
 .winner-row.hidden {
   display: none;
@@ -331,42 +327,6 @@ body.hide-extras .close-section {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--text);
-}
-
-/* ---- Close counts ------------------------------------------------------- */
-
-.close-levels {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.close-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px;
-  background: var(--surface);
-  border-radius: 10px;
-  border-left: 4px solid var(--border);
-}
-
-.close-row.level-1 { border-left-color: var(--level1); }
-.close-row.level-2 { border-left-color: var(--level2); }
-.close-row.level-3 { border-left-color: var(--level3); }
-
-.close-label {
-  font-size: 0.95rem;
-  color: var(--text);
-}
-
-.close-count {
-  font-size: 1.6rem;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  color: var(--text);
-  min-width: 2ch;
-  text-align: right;
 }
 
 /* ---- Winners ------------------------------------------------------------ */
