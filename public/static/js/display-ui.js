@@ -1,7 +1,6 @@
 import * as logic from "./logic.js";
-
-const GRID_ROWS = 11;
-const GRID_COLS = 9;
+import { buildGrid } from "./ui-grid.js";
+import { renderWinnersPanel } from "./ui-winners.js";
 
 // Toggle the auxiliary panels ("4 из 5" и "Победители"). Set to true to bring
 // them back without touching markup — they're still rendered, just CSS-hidden.
@@ -35,30 +34,6 @@ let startedAt = null;
 
 if (!SHOW_EXTRAS) document.body.classList.add("hide-extras");
 
-function numberAt(col, row) {
-  if (col === 0) return row < 9 ? row + 1 : null;
-  if (col === 8) return 80 + row;
-  return row < 10 ? col * 10 + row : null;
-}
-
-function buildGrid() {
-  gridEl.innerHTML = "";
-  for (let r = 0; r < GRID_ROWS; r++) {
-    for (let c = 0; c < GRID_COLS; c++) {
-      const cell = document.createElement("div");
-      cell.className = "cell";
-      const value = numberAt(c, r);
-      if (value === null) {
-        cell.classList.add("placeholder");
-      } else {
-        cell.textContent = String(value);
-        cell.dataset.num = String(value);
-      }
-      gridEl.appendChild(cell);
-    }
-  }
-}
-
 function formatAmount(n) { return (n || 0).toLocaleString("ru-RU"); }
 
 function renderPrize(gameState, cards) {
@@ -82,28 +57,12 @@ function renderPrize(gameState, cards) {
 // once the host has confirmed that level; the whole section is hidden until
 // at least one level is confirmed.
 function renderWinners(gameState, cards) {
-  const section = document.getElementById("winners-section");
-  if (!section) return;
-  let shown = 0;
-  for (const lvl of [1, 2, 3]) {
-    const row = document.getElementById(`winner-${lvl}`);
-    if (!row) continue;
-    const seqEl = row.querySelector(".winner-seq");
-    const r = logic.resolveLevel(gameState, cards, lvl);
-    const decided = r.status === "decided" && r.winners.length >= 1;
-    row.classList.toggle("hidden", !decided);
-    row.classList.toggle("won", decided);
-    if (decided) {
-      // For split=true ties we show the first (lowest seq); callers already
-      // sorted. For split=false the resolve result collapses to a single
-      // winner once the host picks, so this works uniformly.
-      seqEl.textContent = `№ ${r.winners[0].seq}`;
-      shown += 1;
-    } else {
-      seqEl.textContent = "—";
-    }
-  }
-  section.classList.toggle("hidden", shown === 0);
+  renderWinnersPanel(gameState, cards, (seqEl, winners) => {
+    // For split=true ties we show the first (lowest seq); callers already
+    // sorted. For split=false the resolve result collapses to a single
+    // winner once the host picks, so this works uniformly.
+    seqEl.textContent = `№ ${winners[0].seq}`;
+  });
 }
 
 function renderCurrentAndRecent(calledArr) {

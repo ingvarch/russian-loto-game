@@ -12,6 +12,8 @@ export function numberAt(col, row) {
   return row < 10 ? col * 10 + row : null;            // 10..19, ..., 70..79, placeholder
 }
 
+// The /display board is read-only, so it builds the same cells with no
+// handler; only the host passes onCellClick.
 export function buildGrid(onCellClick) {
   const gridEl = document.getElementById("number-grid");
   gridEl.innerHTML = "";
@@ -25,7 +27,7 @@ export function buildGrid(onCellClick) {
       } else {
         cell.textContent = String(value);
         cell.dataset.num = String(value);
-        cell.addEventListener("click", () => onCellClick(value));
+        if (onCellClick) cell.addEventListener("click", () => onCellClick(value));
       }
       gridEl.appendChild(cell);
     }

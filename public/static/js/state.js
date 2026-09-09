@@ -54,10 +54,18 @@ export function setSession(sessionId) {
   activeSessionId = sessionId || null;
 }
 
-function currentStorageKey() {
-  return activeSessionId === null
-    ? STORAGE_KEY
-    : `${STORAGE_KEY}:${activeSessionId}`;
+function storageKey(sessionId) {
+  return sessionId ? `${STORAGE_KEY}:${sessionId}` : STORAGE_KEY;
+}
+
+// Reaching for localStorage is itself fallible: it is absent outside a
+// browser and throws on access when a browser has site data blocked.
+function browserStorage() {
+  try {
+    return globalThis.localStorage;
+  } catch (e) {
+    return null;
+  }
 }
 
 export function freshState(overrides) {
@@ -78,9 +86,9 @@ export function freshState(overrides) {
   return Object.assign(base, overrides || {});
 }
 
-export function loadState() {
+export function readState(storage, sessionId) {
   try {
-    const raw = localStorage.getItem(currentStorageKey());
+    const raw = storage.getItem(storageKey(sessionId));
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!parsed || !Array.isArray(parsed.called)) return null;
@@ -126,12 +134,20 @@ export function loadState() {
   }
 }
 
-export function saveState(state) {
+export function writeState(storage, sessionId, state) {
   try {
-    localStorage.setItem(currentStorageKey(), JSON.stringify(state));
+    storage.setItem(storageKey(sessionId), JSON.stringify(state));
   } catch (e) {
     // localStorage may be unavailable in private mode; degrade silently
   }
+}
+
+export function loadState() {
+  return readState(browserStorage(), activeSessionId);
+}
+
+export function saveState(state) {
+  writeState(browserStorage(), activeSessionId, state);
 }
 
 export function nowHHMM() {

@@ -14,8 +14,12 @@ import {
   applyUncallNumber,
   freshState,
   loadState,
+  readState,
   recompute,
+  saveState,
+  setSession,
   STORAGE_KEY,
+  writeState,
 } from "../../public/static/js/state.js";
 
 
@@ -342,18 +346,138 @@ test("freshState: stamps the moment the game started", () => {
   assert.ok(s.startedAt >= before && s.startedAt <= after);
 });
 
-test("loadState: a save from before the timer existed reports no start time", () => {
-  const store = new Map();
-  globalThis.localStorage = {
+test("readState: a save from before the timer existed reports no start time", () => {
+  const storage = fakeStorage();
+  const saved = freshState();
+  delete saved.startedAt;
+  storage.store.set(STORAGE_KEY, JSON.stringify(saved));
+
+  assert.equal(readState(storage, null).startedAt, null);
+});
+
+
+// ---- persistence ---------------------------------------------------------
+//
+// Pins every rule read/write carry today: the session namespacing of the key,
+// the back-fill of fields added after old saves were written, and the silent
+// degradation when storage throws or is missing.
+
+function fakeStorage(entries) {
+  const store = new Map(entries || []);
+  return {
+    store,
     getItem: (k) => (store.has(k) ? store.get(k) : null),
     setItem: (k, v) => store.set(k, String(v)),
     removeItem: (k) => store.delete(k),
   };
-  const saved = freshState();
-  delete saved.startedAt;
-  store.set(STORAGE_KEY, JSON.stringify(saved));
+}
 
-  assert.equal(loadState().startedAt, null);
+test("writeState/readState: round-trip under the bare key with no session", () => {
+  const storage = fakeStorage();
+  const s = freshState();
+  s.called = [7];
+  writeState(storage, null, s);
+  assert.ok(storage.store.has(STORAGE_KEY));
+  assert.deepEqual(readState(storage, null).called, [7]);
+});
 
+test("writeState/readState: a session namespaces the key", () => {
+  const storage = fakeStorage();
+  const s = freshState();
+  s.called = [7];
+  writeState(storage, "ABC123", s);
+  assert.ok(storage.store.has(`${STORAGE_KEY}:ABC123`));
+  assert.ok(!storage.store.has(STORAGE_KEY));
+  assert.equal(readState(storage, "XYZ789"), null);
+  assert.deepEqual(readState(storage, "ABC123").called, [7]);
+});
+
+test("readState: back-fills every field added after an old save was written", () => {
+  const storage = fakeStorage();
+  storage.store.set(STORAGE_KEY, JSON.stringify({ called: [1], events: [], cardLevel: {} }));
+  const s = readState(storage, null);
+  assert.equal(s.jackpot, 0);
+  assert.deepEqual(s.percentages, [10, 25, 65]);
+  assert.equal(s.split, true);
+  assert.equal(s.musicPause, null);
+  assert.equal(s.easterEggs, true);
+  assert.equal(s.cardRange, null);
+  assert.equal(s.startedAt, null);
+  assert.deepEqual(s.tiebreakWinners, {});
+});
+
+test("readState: derives levelAutoConfirm from the confirmed events of an old save", () => {
+  const storage = fakeStorage();
+  storage.store.set(STORAGE_KEY, JSON.stringify({
+    called: [1],
+    events: [
+      { cid: "aaa", level: 1, callCount: 5, status: "confirmed" },
+      { cid: "bbb", level: 2, callCount: 9, status: "absent" },
+    ],
+  }));
+  assert.deepEqual(readState(storage, null).levelAutoConfirm, { 1: true, 2: false, 3: false });
+});
+
+test("readState: confirms status-less legacy events and drops tiebreakResolutions", () => {
+  const storage = fakeStorage();
+  storage.store.set(STORAGE_KEY, JSON.stringify({
+    called: [1],
+    events: [{ cid: "aaa", level: 1, callCount: 5 }],
+    tiebreakResolutions: { "1:5": "aaa" },
+  }));
+  const s = readState(storage, null);
+  assert.equal(s.events[0].status, "confirmed");
+  assert.equal("tiebreakResolutions" in s, false);
+});
+
+test("readState: null for nothing saved, malformed JSON, or a blob without `called`", () => {
+  const storage = fakeStorage();
+  assert.equal(readState(storage, null), null);
+  storage.store.set(STORAGE_KEY, "{not json");
+  assert.equal(readState(storage, null), null);
+  storage.store.set(STORAGE_KEY, JSON.stringify({ events: [] }));
+  assert.equal(readState(storage, null), null);
+});
+
+test("readState/writeState: storage that throws degrades silently", () => {
+  const throwing = {
+    getItem() { throw new Error("denied"); },
+    setItem() { throw new Error("quota"); },
+  };
+  assert.equal(readState(throwing, null), null);
+  assert.doesNotThrow(() => writeState(throwing, null, freshState()));
+});
+
+test("readState/writeState: no storage at all degrades silently", () => {
+  assert.equal(readState(undefined, null), null);
+  assert.doesNotThrow(() => writeState(undefined, null, freshState()));
+});
+
+// loadState/saveState are the thin wrappers the pages call: they bind the
+// browser's localStorage and whatever setSession() last recorded.
+
+test("loadState/saveState: bind localStorage and the active session", () => {
+  const storage = fakeStorage();
+  globalThis.localStorage = storage;
+  try {
+    setSession("ABC123");
+    const s = freshState();
+    s.called = [7];
+    saveState(s);
+    assert.ok(storage.store.has(`${STORAGE_KEY}:ABC123`));
+    assert.deepEqual(loadState().called, [7]);
+
+    setSession(null);
+    assert.equal(loadState(), null);
+  } finally {
+    delete globalThis.localStorage;
+    setSession(null);
+  }
+});
+
+test("loadState/saveState: a browser without localStorage degrades silently", () => {
   delete globalThis.localStorage;
+  setSession(null);
+  assert.equal(loadState(), null);
+  assert.doesNotThrow(() => saveState(freshState()));
 });

@@ -22,6 +22,7 @@ import { renderPayout } from "./ui-payout.js";
 import * as newGame from "./ui-new-game.js";
 import * as modals from "./ui-modals.js";
 import * as sheet from "./ui-sheet.js";
+import { confirmedWinnersAt, renderWinnersPanel } from "./ui-winners.js";
 
 let CARDS = [];
 let current = null;
@@ -114,13 +115,10 @@ function onCellClick(n) {
 
 function maybeShowAutoWin() {
   const callCount = current.called.length;
-  const freshWinners = (current.events || []).filter(
-    (e) => e.level === 3 && e.callCount === callCount && e.status === "confirmed",
-  );
+  const freshWinners = confirmedWinnersAt(current.events, 3, callCount);
   if (freshWinners.length === 0) return;
   const tb = logic.nextTiebreakBatch(current, active());
   if (tb && tb.level === 3 && tb.callCount === callCount) return;
-  freshWinners.sort((a, b) => a.seq - b.seq);
   const winner = CARDS.find((c) => c.cid === freshWinners[0].cid);
   if (winner) showWin(winner);
 }
@@ -154,34 +152,17 @@ function renderCounters() {
 // has confirmed it, via resolveLevel so host-picked tiebreak winners surface.
 // Whole section hidden until at least one level is decided.
 function renderWinners() {
-  const section = document.getElementById("winners-section");
-  if (!section) return;
-  const cards = active();
-  let shown = 0;
-  for (const lvl of [1, 2, 3]) {
-    const row = document.getElementById("winner-" + lvl);
-    if (!row) continue;
-    const seqEl = row.querySelector(".winner-seq");
-    const r = logic.resolveLevel(current, cards, lvl);
-    const decided = r.status === "decided" && r.winners.length >= 1;
-    row.classList.toggle("hidden", !decided);
-    row.classList.toggle("won", decided);
-    if (decided) {
-      seqEl.textContent = "";
-      r.winners.forEach((c, i) => {
-        if (i > 0) seqEl.appendChild(document.createTextNode(", "));
-        const item = document.createElement("span");
-        item.className = "winner-seq-item";
-        item.textContent = logic.formatSeq(c.seq);
-        item.addEventListener("click", () => openSheet(c.cid));
-        seqEl.appendChild(item);
-      });
-      shown += 1;
-    } else {
-      seqEl.textContent = "—";
-    }
-  }
-  section.classList.toggle("hidden", shown === 0);
+  renderWinnersPanel(current, active(), (seqEl, winners) => {
+    seqEl.textContent = "";
+    winners.forEach((c, i) => {
+      if (i > 0) seqEl.appendChild(document.createTextNode(", "));
+      const item = document.createElement("span");
+      item.className = "winner-seq-item";
+      item.textContent = logic.formatSeq(c.seq);
+      item.addEventListener("click", () => openSheet(c.cid));
+      seqEl.appendChild(item);
+    });
+  });
 }
 
 const TARGET_LABELS = { 1: "одной линии", 2: "двум линиям", 3: "полному лото" };
@@ -260,11 +241,7 @@ function resolvePendingEvent(event, resolution) {
     // it fires after the host picks (see resolveTiebreak).
     const tb = logic.nextTiebreakBatch(current, active());
     if (tb && tb.level === 3 && tb.callCount === event.callCount) return;
-    const confirmed = (current.events || [])
-      .filter(
-        (e) => e.level === 3 && e.callCount === event.callCount && e.status === "confirmed",
-      )
-      .sort((a, b) => a.seq - b.seq);
+    const confirmed = confirmedWinnersAt(current.events, 3, event.callCount);
     if (confirmed.length > 0) {
       const winner = CARDS.find((c) => c.cid === confirmed[0].cid);
       if (winner) showWin(winner);
