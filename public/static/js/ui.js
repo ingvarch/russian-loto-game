@@ -7,19 +7,21 @@
 //
 // All business logic lives in logic.js (pure) and state.js (mutators).
 // This module only touches the DOM.
+//
+// Each screen surface lives in its own ui-*.js sibling. This module is the
+// composition root: it owns the state, wires the surfaces to handlers and
+// fans render() out to them.
 
 import * as logic from "./logic.js";
 import * as state from "./state.js";
 import { updatePrefs } from "./prefs.js";
-
-const LEVEL_LABELS = { 1: "одна линия", 2: "две линии", 3: "ПОЛНОЕ ЛОТО" };
-const LEVEL_LABELS_ACCUSATIVE = { 1: "одну линию", 2: "две линии", 3: "ПОЛНОЕ ЛОТО" };
-
-// Loto column ranges: col 0 = 1..9 (9 numbers), cols 1..7 = 10..79 (10 each),
-// col 8 = 80..90 (11 numbers). We use a 9x11 grid; short columns have placeholders
-// in the bottom rows. Every number stays in its semantically correct column.
-const GRID_ROWS = 11;
-const GRID_COLS = 9;
+import { formatAmount } from "./ui-format.js";
+import { buildGrid, renderCells } from "./ui-grid.js";
+import * as log from "./ui-log.js";
+import { renderPayout } from "./ui-payout.js";
+import * as newGame from "./ui-new-game.js";
+import * as modals from "./ui-modals.js";
+import * as sheet from "./ui-sheet.js";
 
 let CARDS = [];
 let current = null;
@@ -28,7 +30,6 @@ let onSaveHook = null;   // optional callback fired after every persist()
 function active() { return logic.activeCards(CARDS, current.cardRange); }
 function calledSet() { return logic.calledSet(current.called); }
 function payouts() { return logic.computePayouts(current, active()); }
-function formatAmount(n) { return (n || 0).toLocaleString("ru-RU"); }
 
 // Single choke-point for writing state: localStorage first (always synchronous
 // and fast), then the optional hook which callers (main-game.js) use to push
@@ -63,15 +64,15 @@ export function init({ cards, initialState, onSave, autoOpenNewGame }) {
   current = initialState;
   onSaveHook = onSave || null;
 
-  buildGrid();
+  buildGrid(onCellClick);
   wireUncallModal();
   wireWinContinueModal();
-  wireNewGameModal();
-  wireLogToggle();
+  newGame.wireNewGameModal({ cards: CARDS, getState: () => current, onStart: startNewGame });
+  log.wireLog(() => current.events.length);
   wireCloseHelp();
   wireWinOverlay();
   wireMusicPause();
-  wireBottomSheet();
+  sheet.wireBottomSheet();
 
   // Reconcile stored state on load: cardLevel may be stale if CARDS changed
   // (e.g. the server restarted with a different registry). Any level
@@ -85,39 +86,10 @@ export function init({ cards, initialState, onSave, autoOpenNewGame }) {
   // First visit from the landing page: open the new-game modal so the
   // host can pick bank/percentages/range before the first call. The
   // existing modal handler does the rest -- no extra wiring here.
-  if (autoOpenNewGame) openNewGameModal();
+  if (autoOpenNewGame) newGame.open(current, CARDS);
 }
 
 // ---- Grid ----------------------------------------------------------------
-
-const gridEl = document.getElementById("number-grid");
-const logEl = document.getElementById("log");
-const counterEl = document.getElementById("counter-called");
-
-function buildGrid() {
-  gridEl.innerHTML = "";
-  for (let r = 0; r < GRID_ROWS; r++) {
-    for (let c = 0; c < GRID_COLS; c++) {
-      const cell = document.createElement("div");
-      cell.className = "cell";
-      const value = numberAt(c, r);
-      if (value === null) {
-        cell.classList.add("placeholder");
-      } else {
-        cell.textContent = String(value);
-        cell.dataset.num = String(value);
-        cell.addEventListener("click", () => onCellClick(value));
-      }
-      gridEl.appendChild(cell);
-    }
-  }
-}
-
-function numberAt(col, row) {
-  if (col === 0) return row < 9 ? row + 1 : null;    // 1..9, then 2 placeholders
-  if (col === 8) return 80 + row;                     // 80..90, all 11 rows used
-  return row < 10 ? col * 10 + row : null;            // 10..19, ..., 70..79, placeholder
-}
 
 function onCellClick(n) {
   // The grid is set `.blocked` while any pending event or unresolved tiebreak
@@ -126,7 +98,7 @@ function onCellClick(n) {
   if (logic.hasPendingEvents(current)) return;
   if (logic.nextTiebreakBatch(current, active())) return;
   if (current.called.includes(n)) {
-    askUncall(n);
+    modals.askUncall(n, current, active());
   } else {
     state.applyCallNumber(current, n, active());
     persist();
@@ -156,14 +128,26 @@ function maybeShowAutoWin() {
 // ---- Render --------------------------------------------------------------
 
 function render() {
-  renderCells();
+  renderCells(calledSet());
   renderWinners();
   renderClose();
-  renderPayout();
-  renderLog();
-  maybeShowConfirmation();
-  maybeShowTiebreak();
+  renderPayout(payouts(), openSheet);
+  renderCounters();
+  log.renderLog(current, { onEventClick: openSheet, onReopen: reopenEvent });
+  modals.maybeShowConfirmation(current, active(), {
+    onSeqClick: openSheet,
+    onResolve: resolvePendingEvent,
+  });
+  modals.maybeShowTiebreak(current, active(), {
+    onSeqClick: openSheet,
+    onPick: resolveTiebreak,
+  });
   maybeShowMusicPause();
+}
+
+function renderCounters() {
+  document.getElementById("counter-called").textContent = String(current.called.length);
+  document.getElementById("card-count").textContent = active().length + " карт";
 }
 
 // Mirror of the /display winners panel: each level row shows once the host
@@ -200,109 +184,6 @@ function renderWinners() {
   section.classList.toggle("hidden", shown === 0);
 }
 
-function renderCells() {
-  const called = calledSet();
-  for (const cell of gridEl.querySelectorAll(".cell[data-num]")) {
-    const n = Number(cell.dataset.num);
-    cell.classList.toggle("called", called.has(n));
-  }
-}
-
-const LOG_VISIBLE = 5;
-// How many balls may be drawn after an event before its rollback locks. The
-// undo is a misclick guard, not a free rewind -- once the game has moved on a
-// few draws, the resolution is final and the row greys out.
-const REOPEN_WINDOW = 5;
-const eventKey = (e) => e.cid + ":" + e.level + ":" + e.callCount;
-const isReopenable = (e, calledCount) =>
-  logic.isEventReopenable(current, e, calledCount, REOPEN_WINDOW);
-// Rebuild the log only when something visible changed, so unrelated state
-// pushes (an SSE heartbeat) don't reflow and flicker the list. The signature
-// folds in each row's reopenable flag so the button vanishes on the exact draw
-// that closes its window. Only rows whose key is new since the last build animate.
-let lastLogSig = null;
-let prevLogKeys = new Set();
-
-function renderLog() {
-  counterEl.textContent = String(current.called.length);
-  document.getElementById("card-count").textContent = active().length + " карт";
-
-  const events = current.events;
-  const calledCount = current.called.length;
-  const sig = events
-    .map((e) => eventKey(e) + (e.status || "") + (isReopenable(e, calledCount) ? "r" : "l"))
-    .join("|");
-  if (sig === lastLogSig) return;
-  lastLogSig = sig;
-
-  if (events.length === 0) {
-    logEl.innerHTML = '<div class="log-empty">Событий пока нет</div>';
-    prevLogKeys = new Set();
-    renderLogToggle(0);
-    return;
-  }
-
-  logEl.innerHTML = "";
-  const keys = new Set();
-  events.forEach((e, i) => {
-    const key = eventKey(e);
-    keys.add(key);
-    const status = e.status || "confirmed";
-    const row = document.createElement("div");
-    row.className = "log-entry level-" + e.level + " status-" + status;
-    if (i >= LOG_VISIBLE) row.classList.add("log-overflow");
-    if (!prevLogKeys.has(key)) row.classList.add("log-new");
-    const levelText = LEVEL_LABELS[e.level];
-    let suffix = "";
-    if (status === "pending") suffix = " · ждёт подтверждения";
-    else if (status === "absent") suffix = " · не в игре";
-    row.innerHTML =
-      '<span class="ts">' + e.ts + '</span>' +
-      '<span class="seq">' + logic.formatSeq(e.seq) + '</span>' +
-      '<span class="level">' + levelText + suffix + '</span>';
-    row.addEventListener("click", () => openSheet(e.cid));
-    if (isReopenable(e, calledCount)) {
-      const reopenBtn = document.createElement("button");
-      reopenBtn.type = "button";
-      reopenBtn.className = "log-reopen";
-      reopenBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /> <path d="M3 3v5h5" /></svg>';
-      reopenBtn.title = "Вернуть к подтверждению";
-      reopenBtn.addEventListener("click", (ev) => {
-        ev.stopPropagation();
-        reopenEvent(e);
-      });
-      row.appendChild(reopenBtn);
-    } else if (status === "confirmed" || status === "absent") {
-      row.classList.add("locked");
-    }
-    logEl.appendChild(row);
-  });
-  prevLogKeys = keys;
-  renderLogToggle(events.length);
-}
-
-// "Показать все" controls: one in the header (collapse without scrolling),
-// one at the bottom of the list. Both reflect and flip the same .log-expanded
-// state on the section, which survives re-renders (SSE pushes, resolutions).
-// Hidden entirely when events fit in LOG_VISIBLE.
-function renderLogToggle(total) {
-  const section = document.getElementById("log-section");
-  const btn = document.getElementById("log-toggle");
-  const top = document.getElementById("log-toggle-top");
-  if (!section || !btn || !top) return;
-  if (total <= LOG_VISIBLE) {
-    btn.classList.add("hidden");
-    top.classList.add("hidden");
-    section.classList.remove("log-expanded");
-    return;
-  }
-  btn.classList.remove("hidden");
-  top.classList.remove("hidden");
-  const expanded = section.classList.contains("log-expanded");
-  btn.textContent = expanded ? "Свернуть" : "Показать все (" + total + ")";
-  top.textContent = expanded ? "Свернуть" : "Развернуть";
-}
-
 const TARGET_LABELS = { 1: "одной линии", 2: "двум линиям", 3: "полному лото" };
 
 // "Близки к ..." panel: cards a single call from the level the game is chasing
@@ -333,431 +214,21 @@ function renderClose() {
   }
 }
 
-function renderPayout() {
-  const section = document.getElementById("payout-section");
-  const p = payouts();
-  if (p.status !== "active") {
-    section.classList.add("hidden");
-    return;
-  }
-  section.classList.remove("hidden");
-
-  const total = p.base1 + p.base2 + p.base3;
-  document.getElementById("payout-total").textContent = formatAmount(total);
-
-  const grid = document.getElementById("payout-grid");
-  grid.innerHTML = "";
-  grid.appendChild(renderPayoutRow(1, "одна линия", p.level1));
-  grid.appendChild(renderPayoutRow(2, "две линии", p.level2));
-  grid.appendChild(renderPayoutRow(3, "полное лото", p.level3));
-}
-
-function renderPayoutRow(level, label, info) {
-  const row = document.createElement("div");
-  row.className = "payout-row level-" + level;
-
-  const levelEl = document.createElement("div");
-  levelEl.className = "payout-level";
-  levelEl.textContent = label;
-
-  const winnersEl = document.createElement("div");
-  winnersEl.className = "payout-winners";
-
-  const amountEl = document.createElement("div");
-  amountEl.className = "payout-amount";
-
-  if (info.status === "unclaimed") {
-    row.classList.add("unclaimed");
-    winnersEl.textContent = "ждёт";
-    amountEl.textContent = formatAmount(info.base);
-  } else if (info.status === "pending-tiebreak") {
-    row.classList.add("unclaimed");
-    winnersEl.textContent = "ничья, жду выбора";
-    amountEl.textContent = formatAmount(info.base);
-  } else if (info.status === "paid") {
-    info.winners.forEach((card) => {
-      const chip = document.createElement("span");
-      chip.className = "chip-sm";
-      chip.textContent = logic.formatSeq(card.seq);
-      chip.addEventListener("click", () => openSheet(card.cid));
-      winnersEl.appendChild(chip);
-    });
-    const perPersonText = formatAmount(info.perPerson);
-    if (info.winners.length > 1) {
-      amountEl.textContent = perPersonText + " × " + info.winners.length;
-    } else {
-      // Single winner: they get perPerson + remainder (at final level) or just base
-      const amt = info.perPerson + (info.absorbFinalRemainder ? info.remainder : 0);
-      amountEl.textContent = formatAmount(amt);
-    }
-    if (info.absorbFinalRemainder && info.winners.length > 1 && info.remainder > 0) {
-      // First winner gets the remainder bonus
-      const note = document.createElement("div");
-      note.style.fontSize = "11px";
-      note.style.color = "var(--text-dim)";
-      note.style.marginTop = "2px";
-      note.textContent = logic.formatSeq(info.winners[0].seq) + " +" + info.remainder;
-      amountEl.appendChild(note);
-    }
-  }
-
-  row.appendChild(levelEl);
-  row.appendChild(winnersEl);
-  row.appendChild(amountEl);
-  return row;
-}
-
-// ---- Confirm-uncall modal ------------------------------------------------
-
-let pendingUncall = null;
-
-function askUncall(n) {
-  pendingUncall = n;
-  document.getElementById("confirm-uncall-num").textContent = String(n);
-  const warnEl = document.getElementById("confirm-uncall-warning");
-  const confirmBtn = document.querySelector('#confirm-uncall [data-action="confirm"]');
-  const locked = logic.winnersLockedNumbers(current, active());
-  if (locked.has(n)) {
-    const where = locked
-      .get(n)
-      .map((w) => logic.formatSeq(w.seq) + " (" + LEVEL_LABELS[w.level] + ")")
-      .join(", ");
-    warnEl.textContent = "Это число закрывает выигрышную линию: " + where + ". Отжатие отменит победу.";
-    warnEl.classList.remove("hidden");
-    confirmBtn.classList.add("btn-danger");
-  } else {
-    warnEl.classList.add("hidden");
-    confirmBtn.classList.remove("btn-danger");
-  }
-  document.getElementById("confirm-uncall").classList.add("open");
-}
-
-function setupModal(id, onConfirm) {
-  const modal = document.getElementById(id);
-  modal.querySelector('[data-action="cancel"]').addEventListener("click", () => {
-    modal.classList.remove("open");
-  });
-  modal.querySelector('[data-action="confirm"]').addEventListener("click", () => {
-    modal.classList.remove("open");
-    onConfirm();
-  });
-  modal.addEventListener("click", (ev) => {
-    if (ev.target === modal) modal.classList.remove("open");
-  });
-}
-
-function wireUncallModal() {
-  setupModal("confirm-uncall", () => {
-    if (pendingUncall !== null) {
-      state.applyUncallNumber(current, pendingUncall, active());
-      persist();
-      render();
-      pendingUncall = null;
-    }
-  });
-}
-
-function wireWinContinueModal() {
-  setupModal("confirm-win-continue", closeWin);
-}
-
-// ---- New-game modal ------------------------------------------------------
-
-function openNewGameModal() {
-  // Pre-fill form with current settings (or defaults if none).
-  document.getElementById("ng-jackpot").value = current.jackpot || 0;
-  document.getElementById("ng-pct1").value = (current.percentages && current.percentages[0]) || 10;
-  document.getElementById("ng-pct2").value = (current.percentages && current.percentages[1]) || 25;
-  document.getElementById("ng-pct3").value = (current.percentages && current.percentages[2]) || 65;
-  document.getElementById("ng-split").checked = current.split === true;
-  // The pause is on by default; an empty number would fail validation, so a
-  // keg is drawn for it whenever the host has not already picked one.
-  document.getElementById("ng-music").checked = true;
-  document.getElementById("ng-music-num").value =
-      current.musicPause ? current.musicPause.number : logic.pickMusicNumber();
-  syncMusicRowVisibility();
-  document.getElementById("ng-eggs").checked = current.easterEggs !== false;
-  document.getElementById("ng-error").textContent = "";
-  const cardsInput = document.getElementById("ng-cards");
-  if (current.cardRange) {
-      cardsInput.value = current.cardRange[0] + "-" + current.cardRange[1];
-  } else {
-      cardsInput.value = "";
-  }
-  const allSeqs = CARDS.map((c) => c.seq);
-  const minSeq = Math.min(...allSeqs);
-  const maxSeq = Math.max(...allSeqs);
-  document.getElementById("ng-cards-hint").textContent =
-      "Загружено: " + logic.formatSeq(minSeq) +
-      "–" + logic.formatSeq(maxSeq) +
-      ", всего " + CARDS.length;
-  syncPresetActive();
-  updateNewGamePreview();
-  document.getElementById("new-game-modal").classList.add("open");
-}
-
-function closeNewGameModal() {
-  document.getElementById("new-game-modal").classList.remove("open");
-}
-
-function readNewGameForm() {
-  const jackpot = parseInt(document.getElementById("ng-jackpot").value, 10) || 0;
-  const pct1 = parseInt(document.getElementById("ng-pct1").value, 10);
-  const pct2 = parseInt(document.getElementById("ng-pct2").value, 10);
-  const pct3 = parseInt(document.getElementById("ng-pct3").value, 10);
-  const split = document.getElementById("ng-split").checked;
-  const musicOn = document.getElementById("ng-music").checked;
-  const musicNum = parseInt(document.getElementById("ng-music-num").value, 10);
-  const cardsRaw = document.getElementById("ng-cards").value.trim();
-  return {
-    jackpot,
-    percentages: [pct1, pct2, pct3],
-    split,
-    musicPause: musicOn ? { number: musicNum, done: false } : null,
-    easterEggs: document.getElementById("ng-eggs").checked,
-    cardRange: cardsRaw || null,
-  };
-}
-
-function syncMusicRowVisibility() {
-  const on = document.getElementById("ng-music").checked;
-  document.getElementById("ng-music-num-row").classList.toggle("hidden", !on);
-}
-
-function validateNewGameForm() {
-  const form = readNewGameForm();
-  const err = document.getElementById("ng-error");
-  if (form.jackpot < 0 || isNaN(form.jackpot)) {
-    err.textContent = "Банк должен быть 0 или больше.";
-    return null;
-  }
-  const pcts = form.percentages;
-  if (pcts.some((p) => isNaN(p) || p < 0 || p > 100)) {
-    err.textContent = "Проценты должны быть от 0 до 100.";
-    return null;
-  }
-  const sum = pcts[0] + pcts[1] + pcts[2];
-  if (sum !== 100) {
-    err.textContent = "Сумма процентов должна быть ровно 100 (сейчас " + sum + ").";
-    return null;
-  }
-  if (form.musicPause) {
-    const n = form.musicPause.number;
-    if (isNaN(n) || n < 1 || n > 90) {
-      err.textContent = "Число музыкальной паузы — от 1 до 90.";
-      return null;
-    }
-  }
-  if (form.cardRange) {
-      const raw = form.cardRange;
-      const rangeMatch = raw.match(/^(\d+)\s*-\s*(\d+)$/);
-      const singleMatch = raw.match(/^(\d+)$/);
-      if (rangeMatch) {
-          const lo = parseInt(rangeMatch[1], 10);
-          const hi = parseInt(rangeMatch[2], 10);
-          if (lo < 1 || hi < 1 || lo > hi) {
-              err.textContent = "Неверный диапазон карт.";
-              return null;
-          }
-          form.cardRange = [lo, hi];
-      } else if (singleMatch) {
-          const n = parseInt(singleMatch[1], 10);
-          if (n < 1) {
-              err.textContent = "Номер карты должен быть >= 1.";
-              return null;
-          }
-          form.cardRange = [n, n];
-      } else {
-          err.textContent = "Формат диапазона: 1-25 или одно число.";
-          return null;
-      }
-      const [lo, hi] = form.cardRange;
-      const count = CARDS.filter((c) => c.seq >= lo && c.seq <= hi).length;
-      if (count === 0) {
-          err.textContent = "Ни одной загруженной карты в этом диапазоне.";
-          return null;
-      }
-  }
-  err.textContent = "";
-  return form;
-}
-
-function updateNewGamePreview() {
-  const form = readNewGameForm();
-  const preview = document.getElementById("ng-preview");
-  if (form.jackpot > 0 && form.percentages.every((p) => !isNaN(p))) {
-    const sum = form.percentages[0] + form.percentages[1] + form.percentages[2];
-    if (sum === 100) {
-      const b1 = Math.floor((form.jackpot * form.percentages[0]) / 100);
-      const b2 = Math.floor((form.jackpot * form.percentages[1]) / 100);
-      const b3 = form.jackpot - b1 - b2;
-      document.getElementById("ng-preview-1").textContent = b1.toLocaleString("ru-RU");
-      document.getElementById("ng-preview-2").textContent = b2.toLocaleString("ru-RU");
-      document.getElementById("ng-preview-3").textContent = b3.toLocaleString("ru-RU");
-      preview.classList.remove("hidden");
-      return;
-    }
-  }
-  preview.classList.add("hidden");
-}
-
-function applyPreset(btn) {
-  const pctStr = btn.dataset.pct;
-  if (pctStr) {
-    const pcts = pctStr.split(",").map((s) => parseInt(s, 10));
-    document.getElementById("ng-pct1").value = pcts[0];
-    document.getElementById("ng-pct2").value = pcts[1];
-    document.getElementById("ng-pct3").value = pcts[2];
-  }
-  syncPresetActive();
-  updateNewGamePreview();
-  validateNewGameForm();
-}
-
-function syncPresetActive() {
-  const p1 = parseInt(document.getElementById("ng-pct1").value, 10);
-  const p2 = parseInt(document.getElementById("ng-pct2").value, 10);
-  const p3 = parseInt(document.getElementById("ng-pct3").value, 10);
-  const currentPct = [p1, p2, p3].join(",");
-  // No preset matching the typed percentages simply leaves none highlighted.
-  document.querySelectorAll("#ng-presets button").forEach((btn) => {
-    btn.classList.toggle("active", btn.dataset.pct === currentPct);
-  });
-}
-
-function wireNewGameModal() {
-  ["ng-jackpot", "ng-pct1", "ng-pct2", "ng-pct3"].forEach((id) => {
-    document.getElementById(id).addEventListener("input", () => {
-      syncPresetActive();
-      updateNewGamePreview();
-      validateNewGameForm();
-    });
-  });
-  document.querySelectorAll("#ng-presets button").forEach((btn) => {
-    btn.addEventListener("click", (ev) => {
-      ev.preventDefault();
-      applyPreset(btn);
-    });
-  });
-  document.getElementById("ng-music").addEventListener("change", () => {
-    syncMusicRowVisibility();
-    validateNewGameForm();
-  });
-  document.getElementById("ng-music-num").addEventListener("input", () => validateNewGameForm());
-
-  const newGameModalEl = document.getElementById("new-game-modal");
-  newGameModalEl.querySelector('[data-action="cancel"]').addEventListener("click", closeNewGameModal);
-  newGameModalEl.querySelector('[data-action="confirm"]').addEventListener("click", () => {
-    const form = validateNewGameForm();
-    if (form === null) return;
-    // The form is the other half of the settings screen's eggs switch: what
-    // the host picks here is what the next game starts with.
-    updatePrefs({ easterEggs: form.easterEggs });
-    current = state.freshState(form);
-    persist();
-    render();
-    closeWin();
-    closeNewGameModal();
-  });
-  newGameModalEl.addEventListener("click", (ev) => {
-    if (ev.target === newGameModalEl) closeNewGameModal();
-  });
-
-  document.getElementById("new-game-btn").addEventListener("click", openNewGameModal);
-}
-
-// ---- Confirmation modal --------------------------------------------------
-//
-// Fires whenever any event in state is pending. For a singular crossing
-// (one card, the common case) shows a yes/no confirmation. For simultaneous
-// crossings (multiple cards at the same callCount -- the old tiebreak
-// scenario) shows all candidates with per-card [Играет]/[Не в игре]
-// buttons; the modal stays open until every candidate is marked.
-//
-// When the last pending event of a level-3 batch is confirmed, fires the
-// win overlay for the first confirmed card (by seq).
-
-function maybeShowConfirmation() {
-  const modal = document.getElementById("confirm-line-modal");
-  const grid = document.getElementById("number-grid");
-  const batch = logic.nextPendingBatch(current, active());
-
-  if (!batch) {
-    modal.classList.remove("open");
-    grid.classList.remove("blocked");
-    return;
-  }
-
-  const levelLabelAcc = LEVEL_LABELS_ACCUSATIVE[batch.level];
-  const titleEl = document.getElementById("confirm-line-title");
-  const hintEl = document.getElementById("confirm-line-hint");
-  titleEl.textContent = batch.candidates.length === 1
-    ? "Карточка закрыла " + levelLabelAcc
-    : batch.candidates.length + " карточки закрыли " + levelLabelAcc + " одновременно";
-  hintEl.textContent = batch.candidates.length === 1
-    ? "Игрок с этой карточкой подтверждает?"
-    : "Отметь каждую: играет или нет.";
-
-  const listEl = document.getElementById("confirm-line-candidates");
-  listEl.innerHTML = "";
-  for (const { event, card } of batch.candidates) {
-    const row = document.createElement("div");
-    row.className = "confirm-candidate";
-
-    const label = document.createElement("div");
-    label.className = "confirm-candidate-label";
-    const seqSpan = document.createElement("span");
-    seqSpan.className = "confirm-candidate-seq";
-    seqSpan.textContent = logic.formatSeq(card.seq);
-    seqSpan.addEventListener("click", () => openSheet(card.cid));
-    label.appendChild(seqSpan);
-    const cidSpan = document.createElement("span");
-    cidSpan.className = "confirm-candidate-cid";
-    cidSpan.textContent = card.cid;
-    label.appendChild(cidSpan);
-
-    const actions = document.createElement("div");
-    actions.className = "confirm-candidate-actions";
-    const confirmBtn = document.createElement("button");
-    confirmBtn.type = "button";
-    confirmBtn.className = "btn-confirm-play";
-    confirmBtn.textContent = "Играет";
-    confirmBtn.addEventListener("click", () => resolvePendingEvent(event, "confirmed"));
-    const absentBtn = document.createElement("button");
-    absentBtn.type = "button";
-    absentBtn.className = "btn-confirm-absent";
-    absentBtn.textContent = "Не в игре";
-    absentBtn.addEventListener("click", () => resolvePendingEvent(event, "absent"));
-    actions.appendChild(confirmBtn);
-    actions.appendChild(absentBtn);
-
-    row.appendChild(label);
-    row.appendChild(actions);
-    listEl.appendChild(row);
-  }
-
-  modal.classList.add("open");
-  grid.classList.add("blocked");
-}
-
-function wireLogToggle() {
-  const section = document.getElementById("log-section");
-  if (!section) return;
-  const toggle = () => {
-    section.classList.toggle("log-expanded");
-    renderLogToggle(current.events.length);
-  };
-  for (const id of ["log-toggle", "log-toggle-top"]) {
-    const btn = document.getElementById(id);
-    if (btn) btn.addEventListener("click", toggle);
-  }
-}
-
 function wireCloseHelp() {
   const btn = document.getElementById("close-help-btn");
   const help = document.getElementById("close-help");
   if (!btn || !help) return;
   btn.addEventListener("click", () => help.classList.toggle("hidden"));
+}
+
+// ---- Event resolution ----------------------------------------------------
+
+function wireUncallModal() {
+  modals.wireUncallModal((n) => {
+    state.applyUncallNumber(current, n, active());
+    persist();
+    render();
+  });
 }
 
 function reopenEvent(event) {
@@ -766,7 +237,10 @@ function reopenEvent(event) {
   });
   persist();
   render();
-  maybeShowConfirmation();
+  modals.maybeShowConfirmation(current, active(), {
+    onSeqClick: openSheet,
+    onResolve: resolvePendingEvent,
+  });
 }
 
 function resolvePendingEvent(event, resolution) {
@@ -798,65 +272,6 @@ function resolvePendingEvent(event, resolution) {
   }
 }
 
-// ---- Tiebreak modal (split=false only) -----------------------------------
-//
-// Fires when `nextTiebreakBatch` reports an unresolved tie: the host ran a
-// mini-game at the table and taps the winning card. After the pick, if the
-// tie was at level 3 we fire the win overlay (same as resolvePendingEvent).
-
-function maybeShowTiebreak() {
-  const modal = document.getElementById("tiebreak-modal");
-  const grid = document.getElementById("number-grid");
-  const batch = logic.nextTiebreakBatch(current, active());
-  if (!batch) {
-    modal.classList.remove("open");
-    // Only remove .blocked if no confirmation modal is up either.
-    if (!logic.hasPendingEvents(current)) grid.classList.remove("blocked");
-    return;
-  }
-
-  const titleEl = document.getElementById("tiebreak-title");
-  const levelText = LEVEL_LABELS_ACCUSATIVE[batch.level];
-  titleEl.textContent = "Ничья: " + batch.candidates.length + " карт закрыли " + levelText;
-
-  const listEl = document.getElementById("tiebreak-candidates");
-  listEl.innerHTML = "";
-  for (const card of batch.candidates) {
-    const row = document.createElement("div");
-    row.className = "confirm-candidate";
-
-    const label = document.createElement("div");
-    label.className = "confirm-candidate-label";
-    const seqSpan = document.createElement("span");
-    seqSpan.className = "confirm-candidate-seq";
-    seqSpan.textContent = logic.formatSeq(card.seq);
-    seqSpan.addEventListener("click", () => openSheet(card.cid));
-    label.appendChild(seqSpan);
-    const cidSpan = document.createElement("span");
-    cidSpan.className = "confirm-candidate-cid";
-    cidSpan.textContent = card.cid;
-    label.appendChild(cidSpan);
-
-    const actions = document.createElement("div");
-    actions.className = "confirm-candidate-actions tiebreak-pick";
-    const pickBtn = document.createElement("button");
-    pickBtn.type = "button";
-    pickBtn.className = "btn-confirm-play";
-    pickBtn.textContent = "Победитель";
-    pickBtn.addEventListener("click", () =>
-      resolveTiebreak(batch.level, batch.callCount, card.cid),
-    );
-    actions.appendChild(pickBtn);
-
-    row.appendChild(label);
-    row.appendChild(actions);
-    listEl.appendChild(row);
-  }
-
-  modal.classList.add("open");
-  grid.classList.add("blocked");
-}
-
 function resolveTiebreak(level, callCount, cid) {
   state.applyResolveTiebreak(current, { level, callCount }, cid);
   persist();
@@ -865,6 +280,18 @@ function resolveTiebreak(level, callCount, cid) {
     const winner = CARDS.find((c) => c.cid === cid);
     if (winner) showWin(winner);
   }
+}
+
+// ---- New game ------------------------------------------------------------
+
+function startNewGame(form) {
+  // The form is the other half of the settings screen's eggs switch: what
+  // the host picks here is what the next game starts with.
+  updatePrefs({ easterEggs: form.easterEggs });
+  current = state.freshState(form);
+  persist();
+  render();
+  closeWin();
 }
 
 // ---- Win overlay ---------------------------------------------------------
@@ -911,6 +338,19 @@ function closeWin() {
   document.getElementById("win-backdrop").classList.remove("open");
 }
 
+function wireWinContinueModal() {
+  modals.setupModal("confirm-win-continue", closeWin);
+}
+
+function wireWinOverlay() {
+  document.getElementById("win-continue-btn").addEventListener("click", () => {
+    document.getElementById("confirm-win-continue").classList.add("open");
+  });
+  document.getElementById("win-new-game-btn").addEventListener("click", () => {
+    newGame.open(current, CARDS);
+  });
+}
+
 // ---- Musical pause -------------------------------------------------------
 //
 // Driven purely by state so it opens on every admin tab via the shared SSE
@@ -928,73 +368,10 @@ function wireMusicPause() {
   });
 }
 
-function wireWinOverlay() {
-  document.getElementById("win-continue-btn").addEventListener("click", () => {
-    document.getElementById("confirm-win-continue").classList.add("open");
-  });
-  document.getElementById("win-new-game-btn").addEventListener("click", openNewGameModal);
-}
-
 // ---- Bottom sheet --------------------------------------------------------
 
 function openSheet(cid) {
   const card = CARDS.find((c) => c.cid === cid);
   if (!card) return;
-  const called = calledSet();
-  const closed = card.numbers.filter((n) => called.has(n)).length;
-  const level = current.cardLevel[cid] || 0;
-
-  document.getElementById("sheet-seq").textContent = logic.formatSeq(card.seq);
-  document.getElementById("sheet-cid").textContent = card.cid;
-  document.getElementById("sheet-stars").textContent = renderStars(level);
-  document.getElementById("sheet-progress").textContent = closed + "/15";
-
-  const cardEl = document.getElementById("sheet-card");
-  cardEl.innerHTML = "";
-  for (let r = 0; r < 3; r++) {
-    const row = card.rows[r];
-    for (let c = 0; c < 9; c++) {
-      const cell = document.createElement("div");
-      cell.className = "card-cell";
-      const val = row[c];
-      if (val === null) {
-        cell.classList.add("empty");
-      } else {
-        cell.textContent = String(val);
-        if (called.has(val)) cell.classList.add("closed");
-      }
-      cardEl.appendChild(cell);
-    }
-  }
-
-  document.getElementById("sheet-backdrop").classList.add("open");
-  document.getElementById("sheet").classList.add("open");
-}
-
-function closeSheet() {
-  document.getElementById("sheet").classList.remove("open");
-  document.getElementById("sheet-backdrop").classList.remove("open");
-}
-
-function renderStars(level) {
-  const filled = "★".repeat(level);
-  const empty = "☆".repeat(3 - level);
-  return filled + empty;
-}
-
-function wireBottomSheet() {
-  const sheet = document.getElementById("sheet");
-  const sheetBackdrop = document.getElementById("sheet-backdrop");
-
-  sheetBackdrop.addEventListener("click", closeSheet);
-
-  // Swipe-down to dismiss
-  let touchStartY = null;
-  sheet.addEventListener("touchstart", (e) => { touchStartY = e.touches[0].clientY; }, { passive: true });
-  sheet.addEventListener("touchmove", (e) => {
-    if (touchStartY === null) return;
-    const dy = e.touches[0].clientY - touchStartY;
-    if (dy > 60) { closeSheet(); touchStartY = null; }
-  }, { passive: true });
-  sheet.addEventListener("touchend", () => { touchStartY = null; });
+  sheet.openSheet(card, calledSet(), current.cardLevel[cid] || 0);
 }
