@@ -18,6 +18,27 @@ export function setupModal(id, onConfirm) {
   });
 }
 
+// One candidate row with its label; the caller appends its own actions.
+function candidateRow(card, onSeqClick) {
+  const row = document.createElement("div");
+  row.className = "confirm-candidate";
+
+  const label = document.createElement("div");
+  label.className = "confirm-candidate-label";
+  const seqSpan = document.createElement("span");
+  seqSpan.className = "confirm-candidate-seq";
+  seqSpan.textContent = logic.formatSeq(card.seq);
+  seqSpan.addEventListener("click", () => onSeqClick(card.cid));
+  label.appendChild(seqSpan);
+  const cidSpan = document.createElement("span");
+  cidSpan.className = "confirm-candidate-cid";
+  cidSpan.textContent = card.cid;
+  label.appendChild(cidSpan);
+
+  row.appendChild(label);
+  return row;
+}
+
 // ---- Confirm-uncall modal ------------------------------------------------
 
 let pendingUncall = null;
@@ -87,20 +108,7 @@ export function maybeShowConfirmation(state, cards, { onSeqClick, onResolve }) {
   const listEl = document.getElementById("confirm-line-candidates");
   listEl.innerHTML = "";
   for (const { event, card } of batch.candidates) {
-    const row = document.createElement("div");
-    row.className = "confirm-candidate";
-
-    const label = document.createElement("div");
-    label.className = "confirm-candidate-label";
-    const seqSpan = document.createElement("span");
-    seqSpan.className = "confirm-candidate-seq";
-    seqSpan.textContent = logic.formatSeq(card.seq);
-    seqSpan.addEventListener("click", () => onSeqClick(card.cid));
-    label.appendChild(seqSpan);
-    const cidSpan = document.createElement("span");
-    cidSpan.className = "confirm-candidate-cid";
-    cidSpan.textContent = card.cid;
-    label.appendChild(cidSpan);
+    const row = candidateRow(card, onSeqClick);
 
     const actions = document.createElement("div");
     actions.className = "confirm-candidate-actions";
@@ -117,7 +125,6 @@ export function maybeShowConfirmation(state, cards, { onSeqClick, onResolve }) {
     actions.appendChild(confirmBtn);
     actions.appendChild(absentBtn);
 
-    row.appendChild(label);
     row.appendChild(actions);
     listEl.appendChild(row);
   }
@@ -150,20 +157,7 @@ export function maybeShowTiebreak(state, cards, { onSeqClick, onPick }) {
   const listEl = document.getElementById("tiebreak-candidates");
   listEl.innerHTML = "";
   for (const card of batch.candidates) {
-    const row = document.createElement("div");
-    row.className = "confirm-candidate";
-
-    const label = document.createElement("div");
-    label.className = "confirm-candidate-label";
-    const seqSpan = document.createElement("span");
-    seqSpan.className = "confirm-candidate-seq";
-    seqSpan.textContent = logic.formatSeq(card.seq);
-    seqSpan.addEventListener("click", () => onSeqClick(card.cid));
-    label.appendChild(seqSpan);
-    const cidSpan = document.createElement("span");
-    cidSpan.className = "confirm-candidate-cid";
-    cidSpan.textContent = card.cid;
-    label.appendChild(cidSpan);
+    const row = candidateRow(card, onSeqClick);
 
     const actions = document.createElement("div");
     actions.className = "confirm-candidate-actions tiebreak-pick";
@@ -176,7 +170,6 @@ export function maybeShowTiebreak(state, cards, { onSeqClick, onPick }) {
     );
     actions.appendChild(pickBtn);
 
-    row.appendChild(label);
     row.appendChild(actions);
     listEl.appendChild(row);
   }

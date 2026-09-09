@@ -48,7 +48,11 @@ export function basicAuthChallenge(): Response {
   });
 }
 
-function constantTimeEquals(a: string, b: string): boolean {
+// Shared by both write gates: the admin password here and the owner
+// token in GameRoom.verifyOwner. Exported so there is exactly one copy
+// of the comparison -- a security primitive rewritten by hand is the
+// one that gets "optimised" wrongly in a single place.
+export function constantTimeEquals(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
   let diff = 0;
   for (let i = 0; i < a.length; i++) {

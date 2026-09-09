@@ -17,6 +17,7 @@
 //   fetch    GET .../api/events  -- SSE subscription
 
 import { DurableObject } from "cloudflare:workers";
+import { constantTimeEquals } from "./auth.js";
 import type { Env } from "./types.js";
 
 const KEY_OWNER_TOKEN = "ownerToken";
@@ -86,12 +87,7 @@ export class GameRoom extends DurableObject<Env> {
   // off the token byte by byte.
   async verifyOwner(token: string): Promise<boolean> {
     if (this.#ownerToken === null) return false;
-    if (token.length !== this.#ownerToken.length) return false;
-    let diff = 0;
-    for (let i = 0; i < token.length; i++) {
-      diff |= token.charCodeAt(i) ^ this.#ownerToken.charCodeAt(i);
-    }
-    return diff === 0;
+    return constantTimeEquals(token, this.#ownerToken);
   }
 
   async getState(): Promise<unknown> {

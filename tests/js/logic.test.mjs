@@ -133,34 +133,6 @@ test("closeCards: returns cards one call from closing a line", () => {
 });
 
 test("closeCountsByLevel: bucketizes by which level each card would reach", () => {
-  // Card A: no lines closed yet, row 0 at 4/5 -> close to level 1
-  // Card B: one line closed, row 1 at 4/5   -> close to level 2
-  // Card C: already at level 3               -> skipped
-  const a = card(1, "a", [
-    [1, 2, 3, 4, "_", 50, "_", "_", "_"],
-    ["_", "_", "_", "_", "_", "_", 60, 70, 80],
-    ["_", "_", "_", "_", "_", 55, 65, 75, "_"],
-  ]);
-  const b = card(2, "b", [
-    [1, 2, 3, 4, 5, "_", "_", "_", "_"],         // closed (all called)
-    ["_", "_", "_", "_", "_", 56, 66, 76, 86],   // 4/5 if we call 56,66,76,86 but not 5 of them
-    ["_", "_", "_", "_", "_", 57, 67, 77, 87],
-  ]);
-  const c = card(3, "c", [
-    [10, 11, 12, 13, 14, "_", "_", "_", "_"],
-    ["_", "_", "_", "_", "_", 15, 16, 17, 18],
-    ["_", "_", "_", "_", "_", 19, 21, 22, 23],
-  ]);
-  // Build called set:
-  //   a's row 0 at 4/5: 1,2,3,4 called (no 5 yet, 5 is not in row 0 of a)
-  //     Actually row 0 of a is [1,2,3,4,_,50,_,_,_] -> 5 numbers: 1,2,3,4,50.
-  //     For 4/5 we need to call 4 of those without the 5th. Call 1,2,3,4.
-  //   b: row 0 closed => call 1,2,3,4,5. Row 1 4/5 => call 56,66,76 (3/5? need 4)
-  //     Row 1 has 4 numbers: 56,66,76,86 (4 non-null). Wait, 4 total. So needs 3/4 hits for "close".
-  //     Actually we require total==5, so rows with 4 nulls are total=4 and cannot be close. Let me
-  //     adjust card b so row 1 has exactly 5 numbers.
-  //   c: all 15 numbers called => level 3, skipped.
-  // Simpler: just test the code paths on a single card.
   const single = card(1, "x", [
     [1, 2, 3, 4, "_", 50, "_", "_", "_"],   // 5 non-null: 1,2,3,4,50
     ["_", "_", "_", "_", "_", 56, 66, 76, 86], // only 4 non-null -- invalid in real loto
@@ -332,13 +304,6 @@ test("nextTargetLevel: all levels decided -> null", () => {
 
 test("closeCountsByLevel: card with one line closed and another 4/5 -> level 2 bucket", () => {
   // Row 0 fully closed (level 1). Row 1 at 4/5.
-  // Call: 1,2,3,4,5 (row 0 closed) + 56,66,76,86 (row 1 has 5 nums: 56,66,76,86,_) ... need row 1 to have 5 nums.
-  const c = card(1, "x", [
-    [1, 2, 3, 4, 5, "_", "_", "_", "_"],
-    ["_", "_", "_", "_", "_", 56, 66, 76, 86],   // only 4 non-null => total=4, cannot be close
-    ["_", "_", "_", "_", "_", 57, 67, 77, 87],
-  ]);
-  // Fix: include 5 numbers in row 1.
   const c2 = card(1, "x", [
     [1, 2, 3, 4, 5, "_", "_", "_", "_"],
     ["_", 11, "_", "_", "_", 56, 66, 76, 86],

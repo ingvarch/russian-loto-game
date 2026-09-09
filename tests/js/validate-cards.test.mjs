@@ -36,6 +36,12 @@ test("rejects empty array", () => {
   assert.equal(r.ok, false);
 });
 
+test("rejects an entry that is not an object", () => {
+  const r = validateCards(["nope"]);
+  assert.equal(r.ok, false);
+  assert.match(r.error, /объект/);
+});
+
 test("rejects card missing seq", () => {
   const c = realCard();
   delete c.seq;
@@ -79,6 +85,22 @@ test("rejects card with rows not 3x9", () => {
   c.rows = [c.rows[0], c.rows[1]];
   const r = validateCards([c]);
   assert.equal(r.ok, false);
+});
+
+test("rejects a row that does not have 9 cells", () => {
+  const c = realCard();
+  c.rows[1] = c.rows[1].slice(0, 8);
+  const r = validateCards([c]);
+  assert.equal(r.ok, false);
+  assert.match(r.error, /9 ячеек/);
+});
+
+test("rejects a cell value outside 1..90", () => {
+  const c = realCard();
+  c.rows[0][0] = 0;
+  const r = validateCards([c]);
+  assert.equal(r.ok, false);
+  assert.match(r.error, /ячейка/);
 });
 
 test("rejects card with row that has not exactly 5 numbers", () => {

@@ -91,3 +91,18 @@ test("validateForm: a range holding none of the loaded cards is rejected", () =>
 test("validateForm: a range partially overlapping the deck is accepted", () => {
   assert.deepEqual(validateForm(form({ cardRange: "25-100" }), CARDS).form.cardRange, [25, 100]);
 });
+
+test("validateForm: an accepted form carries every other field through unchanged", () => {
+  const musicPause = { number: 42, done: false };
+  const result = validateForm(
+    form({ cardRange: "3-9", split: true, musicPause, easterEggs: false }),
+    CARDS,
+  );
+  assert.equal(result.error, undefined);
+  assert.deepEqual(result.form.cardRange, [3, 9]);
+  assert.equal(result.form.jackpot, 10000);
+  assert.deepEqual(result.form.percentages, [10, 25, 65]);
+  assert.equal(result.form.split, true);
+  assert.equal(result.form.musicPause, musicPause);
+  assert.equal(result.form.easterEggs, false);
+});

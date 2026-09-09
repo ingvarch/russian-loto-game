@@ -11,6 +11,7 @@ import {
   applyReopenEvent,
   applyResolveEvent,
   applyResolveTiebreak,
+  applyUncallNumber,
   freshState,
   loadState,
   recompute,
@@ -287,8 +288,7 @@ test("applyCallNumber: fifth call that closes a line emits confirmed event when 
   applyCallNumber(s, 2, cards);
   applyCallNumber(s, 3, cards);
   applyCallNumber(s, 4, cards);
-  const result = applyCallNumber(s, 5, cards);
-  assert.equal(result.newPending, false);
+  applyCallNumber(s, 5, cards);
   assert.equal(s.events.length, 1);
   assert.equal(s.events[0].status, "confirmed");
 });
@@ -309,6 +309,29 @@ test("applyCallNumber: preserves chronological order regardless of value", () =>
   applyCallNumber(s, 25, cards);
   assert.deepEqual(s.called, [50, 8, 25]);
   assert.equal(s.called[s.called.length - 1], 25);
+});
+
+
+// ---- applyUncallNumber ---------------------------------------------------
+
+test("applyUncallNumber: mutates in place -- drops the number, its level and its event", () => {
+  const s = freshState();
+  const cards = [cardA];
+  for (const n of [1, 2, 3, 4, 5]) applyCallNumber(s, n, cards);
+  assert.equal(s.events.length, 1);
+
+  applyUncallNumber(s, 5, cards);
+  assert.deepEqual(s.called, [1, 2, 3, 4]);
+  assert.equal(s.events.length, 0);
+  assert.equal(s.cardLevel["aaa"], 0);
+});
+
+test("applyUncallNumber: a number that was never called is a no-op", () => {
+  const s = freshState();
+  const cards = [cardA];
+  applyCallNumber(s, 1, cards);
+  applyUncallNumber(s, 90, cards);
+  assert.deepEqual(s.called, [1]);
 });
 
 test("freshState: stamps the moment the game started", () => {

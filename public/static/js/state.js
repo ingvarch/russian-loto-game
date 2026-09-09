@@ -36,9 +36,8 @@
 // admin resolves the crossing. After the first confirmation at a level the
 // flow fast-paths: later crossings at that level skip the modal entirely.
 //
-// Mutators mutate the passed state in place and return { state, ...effects }.
-// `state` in the return is the same reference; it's included so callers can
-// cleanly chain or reassign without special-casing.
+// Mutators mutate the passed state in place and return nothing. Callers
+// already hold the state object, so there is nothing to reassign.
 
 import * as logic from "./logic.js";
 
@@ -143,15 +142,14 @@ export function nowHHMM() {
 // Reconcile cardLevel and events with the current called set. Mutates state
 // in place. New level crossings are emitted as "pending" events -- the UI
 // must present them for admin confirmation before they count as winners.
-// Returns true if any new pending events were emitted this call; the caller
-// uses this to decide whether to defer win overlays until confirmation.
+// Whether a win overlay must wait for confirmation is read back off
+// state.events by the caller (see maybeShowAutoWin in ui.js), not returned.
 // Used both on init (to fix stale cardLevel after a registry swap) and
 // after every call/uncall.
 export function recompute(state, cards, ts) {
   const called = logic.calledSet(state.called);
   const newLevels = {};
   const callCount = state.called.length;
-  let newPending = false;
 
   for (const card of cards) {
     const prev = state.cardLevel[card.cid] || 0;
@@ -168,7 +166,6 @@ export function recompute(state, cards, ts) {
           ts, cid: card.cid, seq: card.seq, level: lvl, callCount,
           status: autoConfirmed ? "confirmed" : "pending",
         });
-        if (!autoConfirmed) newPending = true;
       }
     } else if (next < prev) {
       // Reversed (uncall): drop log entries for levels above the new one.
@@ -180,26 +177,23 @@ export function recompute(state, cards, ts) {
     }
   }
   state.cardLevel = newLevels;
-  return newPending;
 }
 
 export function applyCallNumber(state, n, cards) {
-  if (state.called.includes(n)) return { state, newPending: false };
+  if (state.called.includes(n)) return;
   // Append in chronological order: the /display page reads called[last] as
   // "the most recently drawn keg" and recentCalled slices the tail for the
   // "last five" panel. Sorting by value would silently break both.
   state.called.push(n);
-  const newPending = recompute(state, cards, nowHHMM());
-  return { state, newPending };
+  recompute(state, cards, nowHHMM());
 }
 
 export function applyUncallNumber(state, n, cards) {
   const idx = state.called.indexOf(n);
-  if (idx === -1) return { state };
+  if (idx === -1) return;
   state.called.splice(idx, 1);
   // Uncall only decreases levels, so recompute never emits new events here.
   recompute(state, cards, nowHHMM());
-  return { state };
 }
 
 // Mark a specific pending event as confirmed (player is in play) or absent
@@ -225,7 +219,6 @@ export function applyResolveEvent(state, { cid, level, callCount }, resolution) 
     if (!state.levelAutoConfirm) state.levelAutoConfirm = { 1: false, 2: false, 3: false };
     state.levelAutoConfirm[level] = true;
   }
-  return { state };
 }
 
 // Revert a resolved event (confirmed or absent) back to "pending" so the
@@ -245,14 +238,12 @@ export function applyReopenEvent(state, { cid, level, callCount }) {
   state.levelAutoConfirm[level] = (state.events || []).some(
     (e) => e.level === level && e.status === "confirmed",
   );
-  return { state };
 }
 
 // Dismiss the musical pause overlay. `done` is permanent: the pause fires at
 // most once per game, even if the number is uncalled and called again.
 export function applyMusicPauseContinue(state) {
   if (state.musicPause) state.musicPause.done = true;
-  return { state };
 }
 
 // Record the host's choice when multiple cards tied a level with split=false.
@@ -260,6 +251,5 @@ export function applyMusicPauseContinue(state) {
 // consults this map to promote exactly that card to sole winner.
 export function applyResolveTiebreak(state, { level, callCount }, cid) {
   if (!state.tiebreakWinners) state.tiebreakWinners = {};
-  state.tiebreakWinners[level + ":" + callCount] = cid;
-  return { state };
+  state.tiebreakWinners[logic.tiebreakKey(level, callCount)] = cid;
 }

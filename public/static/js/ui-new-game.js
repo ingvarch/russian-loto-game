@@ -83,33 +83,42 @@ export function validateForm(form, cards) {
       return { error: "Число музыкальной паузы — от 1 до 90." };
     }
   }
-  if (form.cardRange) {
-      const raw = form.cardRange;
-      const rangeMatch = raw.match(/^(\d+)\s*-\s*(\d+)$/);
-      const singleMatch = raw.match(/^(\d+)$/);
-      if (rangeMatch) {
-          const lo = parseInt(rangeMatch[1], 10);
-          const hi = parseInt(rangeMatch[2], 10);
-          if (lo < 1 || hi < 1 || lo > hi) {
-              return { error: "Неверный диапазон карт." };
-          }
-          form.cardRange = [lo, hi];
-      } else if (singleMatch) {
-          const n = parseInt(singleMatch[1], 10);
-          if (n < 1) {
-              return { error: "Номер карты должен быть >= 1." };
-          }
-          form.cardRange = [n, n];
-      } else {
-          return { error: "Формат диапазона: 1-25 или одно число." };
-      }
-      const [lo, hi] = form.cardRange;
-      const count = cards.filter((c) => c.seq >= lo && c.seq <= hi).length;
-      if (count === 0) {
-          return { error: "Ни одной загруженной карты в этом диапазоне." };
-      }
+  if (!form.cardRange) {
+    return { form };
   }
-  return { form };
+  const parsed = parseCardRange(form.cardRange);
+  if (parsed.error) {
+    return { error: parsed.error };
+  }
+  const [lo, hi] = parsed.range;
+  const count = cards.filter((c) => c.seq >= lo && c.seq <= hi).length;
+  if (count === 0) {
+    return { error: "Ни одной загруженной карты в этом диапазоне." };
+  }
+  return { form: { ...form, cardRange: parsed.range } };
+}
+
+// Parses "1-25" or "7" into a { range: [lo, hi] } pair of seq numbers, or
+// returns the { error } the host sees. Reads nothing but its argument.
+function parseCardRange(raw) {
+  const rangeMatch = raw.match(/^(\d+)\s*-\s*(\d+)$/);
+  if (rangeMatch) {
+    const lo = parseInt(rangeMatch[1], 10);
+    const hi = parseInt(rangeMatch[2], 10);
+    if (lo < 1 || hi < 1 || lo > hi) {
+      return { error: "Неверный диапазон карт." };
+    }
+    return { range: [lo, hi] };
+  }
+  const singleMatch = raw.match(/^(\d+)$/);
+  if (singleMatch) {
+    const n = parseInt(singleMatch[1], 10);
+    if (n < 1) {
+      return { error: "Номер карты должен быть >= 1." };
+    }
+    return { range: [n, n] };
+  }
+  return { error: "Формат диапазона: 1-25 или одно число." };
 }
 
 function validateNewGameForm(cards) {
