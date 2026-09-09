@@ -142,7 +142,7 @@ export function isEventReopenable(state, event, calledCount, window) {
   if (!canReopenEvent(event, calledCount, window)) return false;
   if (event.status === "confirmed") {
     const confirmed = (state.events || []).filter(
-      (e) => e.level === event.level && (e.status === undefined || e.status === "confirmed"),
+      (e) => e.level === event.level && countsAsWin(e),
     );
     const minCall = Math.min(...confirmed.map((e) => (e.callCount == null ? Infinity : e.callCount)));
     if ((event.callCount == null ? Infinity : event.callCount) > minCall) return false;
@@ -169,6 +169,15 @@ export function nextTargetLevel(state, cards) {
   return null;
 }
 
+// Whether an event counts as a win. "pending" and "absent" do not -- we only
+// surface cards the admin confirmed are actually playing. A missing status is
+// the pre-confirmation-flow shape and counts, matching the back-fill readState
+// applies to legacy saves; a state blob arriving straight off the wire never
+// runs that back-fill, so the rule has to hold here too.
+function countsAsWin(event) {
+  return event.status === undefined || event.status === "confirmed";
+}
+
 // The winning event per level: first confirmed crossing, ties on callCount
 // broken by lowest seq. Events with status "pending" or "absent" are skipped
 // -- we only surface cards the admin confirmed are actually playing.
@@ -180,7 +189,7 @@ export function winningEvents(events) {
   const out = { 1: null, 2: null, 3: null };
   for (const lvl of [1, 2, 3]) {
     const filtered = (events || []).filter(
-      (e) => e.level === lvl && (e.status === undefined || e.status === "confirmed"),
+      (e) => e.level === lvl && countsAsWin(e),
     );
     if (filtered.length === 0) continue;
     let minCall = Infinity;
@@ -208,6 +217,15 @@ export function winnersByLevel(events) {
   return out;
 }
 
+// The cards one specific call confirmed at `level`, lowest seq first. Not
+// resolveLevel: that answers "who won the level" (earliest callCount of the
+// whole game), while the win overlay fires for what this very call decided.
+export function confirmedWinnersAt(events, level, callCount) {
+  return (events || [])
+    .filter((e) => e.level === level && e.callCount === callCount && countsAsWin(e))
+    .sort((a, b) => a.seq - b.seq);
+}
+
 // ---- Jackpot / payouts ----
 //
 // Each event in state.events has a status: "pending" | "confirmed" | "absent".
@@ -229,7 +247,7 @@ export function winnersByLevel(events) {
 //     level, callCount, candidates }              tied; host must pick one
 export function resolveLevel(state, cards, level) {
   const events = (state.events || []).filter(
-    (e) => e.level === level && (e.status === undefined || e.status === "confirmed"),
+    (e) => e.level === level && countsAsWin(e),
   );
   if (events.length === 0) return { status: "unclaimed" };
 

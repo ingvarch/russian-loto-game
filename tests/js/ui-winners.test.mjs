@@ -1,14 +1,15 @@
 // Tests for public/static/js/ui-winners.js — the winner selection the two
 // boards share. `decidedWinners` decides whether a level row is shown at all
-// (host and /display must agree); `confirmedWinnersAt` picks the cards one
-// specific call just confirmed, which is what the win overlay fires on.
+// (host and /display must agree). The overlay's selector, `confirmedWinnersAt`,
+// lives in logic.js; it is imported here only to pin that the two agree.
 //
 // Run with:  bun test tests/js/
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { decidedWinners, confirmedWinnersAt } from "../../public/static/js/ui-winners.js";
+import { decidedWinners } from "../../public/static/js/ui-winners.js";
+import { confirmedWinnersAt } from "../../public/static/js/logic.js";
 
 const card = (cid, seq) => ({ cid, seq, numbers: [], rows: [[], [], []] });
 const CARDS = [card("a", 7), card("b", 3), card("c", 11)];
@@ -61,36 +62,14 @@ test("decidedWinners: an event for a card outside the range leaves it hidden", (
   assert.equal(decidedWinners(state([event({ cid: "zzz" })]), CARDS, 3), null);
 });
 
-// ---- confirmedWinnersAt --------------------------------------------------
+// ---- the panel rule and the overlay rule ---------------------------------
 
-test("confirmedWinnersAt: picks the confirmed events of one level and call, by seq", () => {
-  const events = [
-    event({ cid: "c", seq: 11 }),
-    event({ cid: "b", seq: 3 }),
-    event({ cid: "a", seq: 7, callCount: 39 }),
-    event({ cid: "a", seq: 7, level: 2 }),
-  ];
-  assert.deepEqual(confirmedWinnersAt(events, 3, 40).map((e) => e.seq), [3, 11]);
-});
-
-test("confirmedWinnersAt: pending and absent events are not winners", () => {
-  const events = [event({ status: "pending" }), event({ cid: "b", seq: 3, status: "absent" })];
-  assert.deepEqual(confirmedWinnersAt(events, 3, 40), []);
-});
-
-// state.recompute always stamps a status and loadState back-fills legacy
-// events to "confirmed", so a status-less event never reaches this selector
-// in play. Pinned because logic.js's own filter does accept `undefined`.
-test("confirmedWinnersAt: an event with no status is not a winner", () => {
-  assert.deepEqual(confirmedWinnersAt([event({ status: undefined })], 3, 40), []);
-});
-
-test("confirmedWinnersAt: a missing event list is empty, not a crash", () => {
-  assert.deepEqual(confirmedWinnersAt(undefined, 3, 40), []);
-});
-
-test("confirmedWinnersAt: the caller's event list keeps its own order", () => {
-  const events = [event({ cid: "c", seq: 11 }), event({ cid: "b", seq: 3 })];
-  confirmedWinnersAt(events, 3, 40);
-  assert.deepEqual(events.map((e) => e.seq), [11, 3]);
+// A state blob pushed by another admin (ui.js applyRemoteState) or fetched at
+// boot (GET ./api/state) skips readState's legacy back-fill, so a status-less
+// event reaches both rules unstamped. Whatever that shape means, the winners
+// panel and the win overlay must mean the same thing by it.
+test("a status-less event decides the level for the panel and the overlay alike", () => {
+  const events = [event({ status: undefined })];
+  assert.deepEqual(decidedWinners(state(events), CARDS, 3).map((c) => c.cid), ["a"]);
+  assert.deepEqual(confirmedWinnersAt(events, 3, 40).map((e) => e.cid), ["a"]);
 });

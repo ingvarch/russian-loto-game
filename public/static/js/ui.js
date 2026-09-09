@@ -22,7 +22,7 @@ import { renderPayout } from "./ui-payout.js";
 import * as newGame from "./ui-new-game.js";
 import * as modals from "./ui-modals.js";
 import * as sheet from "./ui-sheet.js";
-import { confirmedWinnersAt, renderWinnersPanel } from "./ui-winners.js";
+import { renderWinnersPanel } from "./ui-winners.js";
 
 let CARDS = [];
 let current = null;
@@ -115,7 +115,7 @@ function onCellClick(n) {
 
 function maybeShowAutoWin() {
   const callCount = current.called.length;
-  const freshWinners = confirmedWinnersAt(current.events, 3, callCount);
+  const freshWinners = logic.confirmedWinnersAt(current.events, 3, callCount);
   if (freshWinners.length === 0) return;
   const tb = logic.nextTiebreakBatch(current, active());
   if (tb && tb.level === 3 && tb.callCount === callCount) return;
@@ -241,7 +241,7 @@ function resolvePendingEvent(event, resolution) {
     // it fires after the host picks (see resolveTiebreak).
     const tb = logic.nextTiebreakBatch(current, active());
     if (tb && tb.level === 3 && tb.callCount === event.callCount) return;
-    const confirmed = confirmedWinnersAt(current.events, 3, event.callCount);
+    const confirmed = logic.confirmedWinnersAt(current.events, 3, event.callCount);
     if (confirmed.length > 0) {
       const winner = CARDS.find((c) => c.cid === confirmed[0].cid);
       if (winner) showWin(winner);

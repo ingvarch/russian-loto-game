@@ -12,15 +12,6 @@ export function decidedWinners(gameState, cards, level) {
   return r.status === "decided" && r.winners.length >= 1 ? r.winners : null;
 }
 
-// The cards one specific call confirmed at `level`, lowest seq first. Not
-// logic.resolveLevel: that answers "who won the level" (earliest callCount of
-// the whole game), while the win overlay fires for what this very call decided.
-export function confirmedWinnersAt(events, level, callCount) {
-  return (events || [])
-    .filter((e) => e.level === level && e.callCount === callCount && e.status === "confirmed")
-    .sort((a, b) => a.seq - b.seq);
-}
-
 // Paints the three rows and hides the whole section while no level is decided.
 // renderSeq(seqEl, winners) fills the winner cell of a decided row.
 export function renderWinnersPanel(gameState, cards, renderSeq) {

@@ -18,6 +18,7 @@ import {
   isEventReopenable,
   closeCountsByLevel,
   computePayouts,
+  confirmedWinnersAt,
   formatElapsed,
   formatSeq,
   hasPendingEvents,
@@ -407,6 +408,48 @@ test("winningEvents: ties on callCount resolve to lowest seq", () => {
 test("winningEvents: tolerates a null/undefined events list", () => {
   assert.deepEqual(winningEvents(null), { 1: null, 2: null, 3: null });
   assert.deepEqual(winningEvents(undefined), { 1: null, 2: null, 3: null });
+});
+
+
+// ---- confirmedWinnersAt --------------------------------------------------
+//
+// What one specific call decided, which is what the win overlay fires on --
+// as opposed to winningEvents, which answers who won the level outright.
+
+const at = (over) => ({
+  ts: "12:00", cid: "a", seq: 7, level: 3, callCount: 40, status: "confirmed", ...over,
+});
+
+test("confirmedWinnersAt: picks the confirmed events of one level and call, by seq", () => {
+  const events = [
+    at({ cid: "c", seq: 11 }),
+    at({ cid: "b", seq: 3 }),
+    at({ cid: "a", seq: 7, callCount: 39 }),
+    at({ cid: "a", seq: 7, level: 2 }),
+  ];
+  assert.deepEqual(confirmedWinnersAt(events, 3, 40).map((e) => e.seq), [3, 11]);
+});
+
+test("confirmedWinnersAt: pending and absent events are not winners", () => {
+  const events = [at({ status: "pending" }), at({ cid: "b", seq: 3, status: "absent" })];
+  assert.deepEqual(confirmedWinnersAt(events, 3, 40), []);
+});
+
+// Same legacy shape winnersByLevel counts, and for the same reason: readState
+// back-fills it to "confirmed", and a state blob pushed straight from another
+// admin never passes through that back-fill.
+test("confirmedWinnersAt: legacy events with no status field count as confirmed", () => {
+  assert.deepEqual(confirmedWinnersAt([at({ status: undefined })], 3, 40).map((e) => e.cid), ["a"]);
+});
+
+test("confirmedWinnersAt: a missing event list is empty, not a crash", () => {
+  assert.deepEqual(confirmedWinnersAt(undefined, 3, 40), []);
+});
+
+test("confirmedWinnersAt: the caller's event list keeps its own order", () => {
+  const events = [at({ cid: "c", seq: 11 }), at({ cid: "b", seq: 3 })];
+  confirmedWinnersAt(events, 3, 40);
+  assert.deepEqual(events.map((e) => e.seq), [11, 3]);
 });
 
 
